@@ -1,0 +1,26 @@
+html, body {
+    margin: 0;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+
+    font-family: Helvetica, Arial, sans-serif;
+    font-weight: 300;
+    color: white;
+}
+
+#gol-canvas {
+    width: 1024px;
+    height: 512px;
+}
+
+#ui-container {
+    width: 100%;
+    height: 100%;
+}
+
+#debug-ui {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+}

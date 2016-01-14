@@ -1,0 +1,64 @@
+var path = require('path');
+
+desc('This is the default task.');
+task('default', function (params) {
+  console.log('This is the default task.');
+});
+
+var buildDir = 'www';
+
+function compileSkewSources(sources, outputFile, moreFlags, done) {
+    var cmd = '$(npm bin)/skewc';
+    cmd += ' ' + sources.join(' ');
+    cmd += ' ' + '--output-file=' + outputFile;
+
+    if (moreFlags !== null) {
+        cmd += moreFlags;
+    }
+
+    var opts = {
+        printStdout: true,
+        printStderr: true,
+        breakOnError: false
+    };
+
+    jake.exec(cmd, opts, done );
+}
+
+directory(buildDir);
+
+var sources = [
+    'src/imports/2d.sk',
+    'src/imports/html.sk',
+    'src/imports/typedarray.sk',
+    'src/imports/webgl.sk',
+
+    'src/app.sk',
+    'src/lang.sk',
+    'src/shapes.sk',
+    'src/vector.sk'
+];
+
+desc('Build Skew -> Javascript for debug');
+task('release', [buildDir], function () {
+  var outputFile = path.join(buildDir, 'compiled.js');
+  compileSkewSources(
+      sources,
+      outputFile,
+      ' --release',
+      complete
+  );
+});
+
+desc('Build Skew -> Javascript for debug');
+task('debug', [buildDir], function () {
+  var outputFile = path.join(buildDir, 'compiled.js');
+  compileSkewSources(sources, outputFile, null, complete);
+});
+
+desc('Watch skew files and compile when they change');
+watchTask(['debug'], function () {
+  this.watchFiles.include([
+    './**/*.sk'
+  ]);
+});

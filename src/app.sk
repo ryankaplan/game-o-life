@@ -1,0 +1,165 @@
+
+@import
+class Igloo {
+    def new(canvas HTMLElement)
+    var gl WebGLRenderingContext
+    def program(vert string, frag string) Igloo.Program
+    def array(arr Float32Array) Igloo.Buffer
+    def texture(source dynamic, format GLenum, wrap GLenum, filter GLenum) Igloo.Texture
+    def framebuffer Igloo.FrameBuffer
+}
+
+namespace Igloo {
+    const QUAD2 Float32Array
+}
+
+class Igloo.Program {
+
+}
+
+class Igloo.FrameBuffer {
+
+}
+
+class Igloo.Texture {
+    def blank(width int, height int) Igloo.Texture
+    def subset(source dynamic, xoff int, yoff int, width int, height int)
+}
+
+class Igloo.Buffer {
+
+}
+
+@import
+namespace Date {
+    def now int
+}
+
+def timeInSeconds double {
+    return Math.floor(Date.now / 1000)
+}
+
+class GameOfLife {
+    var canvas HTMLCanvasElement
+    var igloo Igloo
+    var timer Box<Interval>
+    var lastTick double = -1
+    var fps int
+    var programs StringMap<Igloo.Program>
+    var buffers StringMap<Igloo.Buffer>
+    var textures StringMap<Igloo.Texture>
+    var framebuffers StringMap<Igloo.FrameBuffer>
+
+    var viewSize Float32Array
+    var stateSize Float32Array
+
+    def new(canvas_ HTMLCanvasElement, scale int) {
+        canvas = canvas_
+        igloo = Igloo.new(canvas_)
+        if igloo.gl == null {
+            throw "Bah!"
+        }
+        if scale < 0 {
+            scale = 4
+        }
+
+        viewSize = Float32Array.new([canvas.width, canvas.height])
+        stateSize = Float32Array.new([canvas.width / scale, canvas.height / scale])
+        timer = null
+        lastTick = timeInSeconds
+        fps = 0
+
+        var gl = igloo.gl
+        gl.disable(gl.DEPTH_TEST)
+
+        programs = {
+            "copy": igloo.program("glsl/quad.vert", "glsl/copy.frag"),
+            "gol": igloo.program("glsl/quad.vert", "glsl/gol.frag")
+        }
+
+        buffers = {
+            "quad": igloo.array(Igloo.QUAD2)
+        }
+
+        textures = {
+            "front": igloo.texture(null, gl.RGBA, gl.REPEAT, gl.NEAREST).blank(stateSize[0] as int, stateSize[1] as int),
+            "back": igloo.texture(null, gl.RGBA, gl.REPEAT, gl.NEAREST).blank(stateSize[0] as int, stateSize[1] as int)
+        }
+
+        framebuffers = {
+            "step": igloo.framebuffer
+        }
+
+        setRandom
+    }
+
+    def set(state Uint8Array) GameOfLife {
+        var rgba = Uint8Array.new((stateSize[0] * stateSize[1] * 4) as int)
+        for i in 0..state.length {
+            var j = i * 4
+            rgba[j + 0] = state[i] == 1 ? 255 : 0
+            rgba[j + 1] = state[i] == 1 ? 255 : 0
+            rgba[j + 2] = state[i] == 1 ? 255 : 0
+            rgba[j + 3] = 255
+        }
+        textures["front"].subset(rgba, 0, 0, stateSize[0] as int, stateSize[1] as int)
+        return self
+    }
+
+    def setRandom {
+        # TODO(ryan)
+    }
+
+    def swap {
+        # TODO(ryan)
+    }
+
+    def step {
+        # TODO(ryan)
+    }
+
+    def draw GameOfLife {
+        # TODO(ryan)
+        return self
+    }
+
+    def poke {
+        # TODO(ryan)
+    }
+
+    def get {
+        # TODO(ryan)
+    }
+
+    def start GameOfLife {
+        # TODO(ryan)
+        return self
+    }
+
+    def stop {
+        # TODO(ryan)
+    }
+
+    def toggle {
+        # TODO(ryan)
+    }
+
+    def eventCoord {
+        # TODO(ryan)
+    }
+}
+
+
+class HTMLWindow {
+    var onload dynamic
+    var onresize dynamic
+}
+
+@entry
+def main {
+    window.onload = => {
+        const canvas = document.getElementById("gol-canvas") as HTMLCanvasElement
+        GameOfLife.new(canvas, 1).draw.start
+    }
+}
+
