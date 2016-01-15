@@ -34,6 +34,7 @@ var sources = [
     'src/imports/webgl.sk',
 
     'src/app.sk',
+    'src/igloo.sk',
     'src/lang.sk',
     'src/shapes.sk',
     'src/vector.sk'
