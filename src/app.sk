@@ -1,8 +1,10 @@
 
 @import
 class Igloo {
-    def new(canvas HTMLElement)
     var gl WebGLRenderingContext
+    var defaultFramebuffer Igloo.FrameBuffer
+
+    def new(canvas HTMLElement)
     def program(vert string, frag string) Igloo.Program
     def array(arr Float32Array) Igloo.Buffer
     def texture(source dynamic, format GLenum, wrap GLenum, filter GLenum) Igloo.Texture
@@ -14,16 +16,22 @@ namespace Igloo {
 }
 
 class Igloo.Program {
-
+    def use Program
+    def attrib(name string, value dynamic, size int) Program
+    def uniformi(name string, value int) Program
+    def uniform(name string, value dynamic) Program
+    def draw(mode GLenum, count int) Program
 }
 
 class Igloo.FrameBuffer {
-
+    def attach(texture Texture) FrameBuffer
+    def bind
 }
 
 class Igloo.Texture {
     def blank(width int, height int) Igloo.Texture
     def subset(source dynamic, xoff int, yoff int, width int, height int)
+    def bind(unit int) Texture
 }
 
 class Igloo.Buffer {
@@ -33,6 +41,11 @@ class Igloo.Buffer {
 @import
 namespace Date {
     def now int
+}
+
+@import
+namespace console {
+    const log dynamic
 }
 
 def timeInSeconds double {
@@ -56,12 +69,17 @@ class GameOfLife {
     def new(canvas_ HTMLCanvasElement, scale int) {
         canvas = canvas_
         igloo = Igloo.new(canvas_)
+        console.log(igloo.defaultFramebuffer)
         if igloo.gl == null {
             throw "Bah!"
         }
         if scale < 0 {
-            scale = 4
+            scale = 1
         }
+
+        # TODO(ryan): Shouldn't have to set this explicitly
+        canvas.width = 1024
+        canvas.height = 512
 
         viewSize = Float32Array.new([canvas.width, canvas.height])
         stateSize = Float32Array.new([canvas.width / scale, canvas.height / scale])
@@ -107,41 +125,97 @@ class GameOfLife {
     }
 
     def setRandom {
-        # TODO(ryan)
+        const rand = Uint8Array.new((stateSize[0] * stateSize[1]) as int)
+        for i in 0..rand.length {
+            rand[i] = Math.random < 0.5 ? 1 : 0
+        }
+        set(rand)
+    }
+
+    def setEmpty {
+        set(Uint8Array.new((stateSize[0] * stateSize[1]) as int))
     }
 
     def swap {
-        # TODO(ryan)
+        const tmp = textures["front"]
+        textures["front"] = textures["back"]
+        textures["back"] = tmp
     }
 
     def step {
-        # TODO(ryan)
+        # TODO(ryan): can do better than this to calculate fps
+        if timeInSeconds != lastTick {
+            lastTick = timeInSeconds
+            fps = 0
+        } else {
+            fps += 1
+        }
+
+        const gl = igloo.gl
+        framebuffers["step"].attach(textures["back"])
+        textures["front"].bind(0)
+        gl.viewport(0, 0, stateSize[0] as int, stateSize[1] as int)
+        programs["gol"]
+            .use
+            .attrib("quad", buffers["quad"], 2)
+            .uniformi("state", 0)
+            .uniform("scale", stateSize)
+            .draw(gl.TRIANGLE_STRIP, 4)
+        swap
     }
 
-    def draw GameOfLife {
-        # TODO(ryan)
-        return self
+    def draw {
+        const gl = igloo.gl
+        igloo.defaultFramebuffer.bind
+        textures["front"].bind(0)
+        gl.viewport(0, 0, viewSize[0] as int, viewSize[1] as int)
+        programs["copy"]
+            .use
+            .attrib("quad", buffers["quad"], 2)
+            .uniformi("state", 0)
+            .uniform("scale", viewSize)
+            .draw(gl.TRIANGLE_STRIP, 4)
     }
 
-    def poke {
-        # TODO(ryan)
+    def poke(x int, y int, state bool) {
+        const v = state ? 255 : 0
+        textures["front"].subset([v, v, v, 255], x, y, 1, 1)
     }
 
-    def get {
-        # TODO(ryan)
+    def get Uint8Array {
+        const gl = igloo.gl
+        const w = stateSize[0] as int
+        const h = stateSize[1] as int
+        framebuffers["step"].attach(textures["front"])
+        const rgba = Uint8Array.new(w * h * 4)
+        gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, rgba)
+        const state = Uint8Array.new(w * h)
+        for i in 0..w * h {
+            state[i] = rgba[i * 4] > 128 ? 1 : 0
+        }
+        return state
     }
 
-    def start GameOfLife {
-        # TODO(ryan)
-        return self
+    def start {
+        if timer == null {
+            timer = Box<Interval>.new(setInterval(() => {
+                step
+                draw
+            }, 60))
+        }
     }
 
     def stop {
-        # TODO(ryan)
+        clearInterval(timer.value)
+        timer = null
     }
 
     def toggle {
-        # TODO(ryan)
+        if timer == null {
+            start
+        } else {
+            stop
+        }
     }
 
     def eventCoord {
@@ -159,7 +233,9 @@ class HTMLWindow {
 def main {
     window.onload = => {
         const canvas = document.getElementById("gol-canvas") as HTMLCanvasElement
-        GameOfLife.new(canvas, 1).draw.start
+        const gol = GameOfLife.new(canvas, 1)
+        gol.draw
+        gol.start
     }
 }
 
