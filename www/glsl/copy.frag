@@ -2,12 +2,12 @@
 precision mediump float;
 #endif
 
-uniform sampler2D state;
-uniform vec2 scale;
+uniform sampler2D cellGridTexture;
+uniform vec2 canvasSize;
 uniform vec2 pageSize;
 
 void main() {
-    gl_FragColor = texture2D(state, gl_FragCoord.xy / scale);
+    gl_FragColor = texture2D(cellGridTexture, gl_FragCoord.xy / canvasSize);
 
     vec4 color = vec4(
         gl_FragCoord.x / pageSize.x,

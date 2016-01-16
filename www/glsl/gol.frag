@@ -2,11 +2,11 @@
 precision mediump float;
 #endif
 
-uniform sampler2D state;
-uniform vec2 scale;
+uniform sampler2D cellGridTexture;
+uniform vec2 cellGridSize;
 
 int get(vec2 offset) {
-    return int(texture2D(state, (gl_FragCoord.xy + offset) / scale).r);
+    return int(texture2D(cellGridTexture, (gl_FragCoord.xy + offset) / cellGridSize).r);
 }
 
 void main() {

@@ -1,9 +1,4 @@
 @import
-namespace Date {
-    def now int
-}
-
-@import
 namespace console {
     const log dynamic
 }
@@ -11,29 +6,27 @@ namespace console {
 class GameOfLife {
     var _canvas HTMLCanvasElement
     var _igloo Igloo
-    var _timer Box<Interval>
     var _programs StringMap<Igloo.Program>
     var _buffers StringMap<Igloo.Buffer>
     var _textures StringMap<Igloo.Texture>
     var _framebuffers StringMap<Igloo.FrameBuffer>
 
-    # Always a 2d array of <canvas /> [width, height]
-    var _viewSize Float32Array
+    # Size of the canvas HTML element. This is the size of our view-textures.
+    var _canvasSize Vector
 
-    # Always a 2d array of simulation grid [width, height]
-    var _stateSize Float32Array
+    # Size of the game of life cell grid. This is _canvasSize / cellSize
+    var _cellGridSize Vector
 
-    def new(canvas HTMLCanvasElement, scale int) {
+    def new(canvas HTMLCanvasElement, cellSize int) {
         _canvas = canvas
+        _canvasSize = Vector.new(_canvas.width, _canvas.height)
+        _cellGridSize = Vector.new(_canvas.width / cellSize, _canvas.height / cellSize)
+
         _igloo = Igloo.new(canvas)
         console.log(_igloo.defaultFramebuffer)
         if _igloo.gl == null {
-            throw "Bah!"
+            throw "TODO(ryan): handle this"
         }
-
-        _viewSize = Float32Array.new([_canvas.width, _canvas.height])
-        _stateSize = Float32Array.new([_canvas.width / scale, _canvas.height / scale])
-        _timer = null
 
         var gl = _igloo.gl
         gl.disable(gl.DEPTH_TEST)
@@ -48,83 +41,39 @@ class GameOfLife {
         }
 
         _textures = {
-            "front": _igloo.texture(null, gl.RGBA, gl.REPEAT, gl.NEAREST).blank(_stateSize[0] as int, _stateSize[1] as int),
-            "back": _igloo.texture(null, gl.RGBA, gl.REPEAT, gl.NEAREST).blank(_stateSize[0] as int, _stateSize[1] as int)
+            "front": _igloo.texture(null, gl.RGBA, gl.REPEAT, gl.NEAREST).blank(_cellGridSize.x as int, _cellGridSize.y as int),
+            "back": _igloo.texture(null, gl.RGBA, gl.REPEAT, gl.NEAREST).blank(_cellGridSize.x as int, _cellGridSize.y as int)
         }
 
         _framebuffers = {
             "step": _igloo.framebuffer
         }
 
-        setRandom
+        # Initialize the cell grid with random values
+        const randomGrid = Uint8Array.new((_cellGridSize.x * _cellGridSize.y) as int)
+        for i in 0..randomGrid.length {
+            randomGrid[i] = Math.random < 0.5 ? 1 : 0
+        }
+        setCellGrid(randomGrid)
     }
 
-    def set(state Uint8Array) GameOfLife {
-        var rgba = Uint8Array.new((_stateSize[0] * _stateSize[1] * 4) as int)
-        for i in 0..state.length {
+    def setCellGrid(inputGrid Uint8Array) GameOfLife {
+        var rgba = Uint8Array.new((_cellGridSize.x * _cellGridSize.y * 4) as int)
+        for i in 0..inputGrid.length {
             var j = i * 4
-            rgba[j + 0] = state[i] == 1 ? 255 : 0
-            rgba[j + 1] = state[i] == 1 ? 255 : 0
-            rgba[j + 2] = state[i] == 1 ? 255 : 0
+            rgba[j + 0] = inputGrid[i] == 1 ? 255 : 0
+            rgba[j + 1] = inputGrid[i] == 1 ? 255 : 0
+            rgba[j + 2] = inputGrid[i] == 1 ? 255 : 0
             rgba[j + 3] = 255
         }
-        _textures["front"].subset(rgba, 0, 0, _stateSize[0] as int, _stateSize[1] as int)
+        _textures["front"].subset(rgba, 0, 0, _cellGridSize.x as int, _cellGridSize.y as int)
         return self
     }
 
-    def setRandom {
-        const rand = Uint8Array.new((_stateSize[0] * _stateSize[1]) as int)
-        for i in 0..rand.length {
-            rand[i] = Math.random < 0.5 ? 1 : 0
-        }
-        set(rand)
-    }
-
-    def setEmpty {
-        set(Uint8Array.new((_stateSize[0] * _stateSize[1]) as int))
-    }
-
-    def swap {
-        const tmp = _textures["front"]
-        _textures["front"] = _textures["back"]
-        _textures["back"] = tmp
-    }
-
-    def step {
-        _framebuffers["step"].attach(_textures["back"])
-        _textures["front"].bind(0)
-        _igloo.gl.viewport(0, 0, _stateSize[0] as int, _stateSize[1] as int)
-        _programs["gol"]
-            .use
-            .attrib("quad", _buffers["quad"], 2)
-            .uniformi("state", 0)
-            .uniform("scale", _stateSize)
-            .draw(_igloo.gl.TRIANGLE_STRIP, 4)
-        swap
-    }
-
-    def draw {
-        _igloo.defaultFramebuffer.bind
-        _textures["front"].bind(0)
-        _igloo.gl.viewport(0, 0, _viewSize[0] as int, _viewSize[1] as int)
-        _programs["copy"]
-            .use
-            .attrib("quad", _buffers["quad"], 2)
-            .uniformi("state", 0)
-            .uniform("scale", _viewSize)
-            .uniform("pageSize", Float32Array.new([_canvas.width, _canvas.height]))
-            .draw(_igloo.gl.TRIANGLE_STRIP, 4)
-    }
-
-    def poke(x int, y int, state bool) {
-        const v = state ? 255 : 0
-        _textures["front"].subset([v, v, v, 255], x, y, 1, 1)
-    }
-
-    def get Uint8Array {
+    def getCellGrid Uint8Array {
         const gl = _igloo.gl
-        const w = _stateSize[0] as int
-        const h = _stateSize[1] as int
+        const w = _cellGridSize.x as int
+        const h = _cellGridSize.y as int
         _framebuffers["step"].attach(_textures["front"])
         const rgba = Uint8Array.new(w * h * 4)
         gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, rgba)
@@ -135,26 +84,54 @@ class GameOfLife {
         return state
     }
 
+    def step {
+        # The current simulation state is always in the front
+        # texture and we draw onto the back texture. So...
+        #
+        # 1. Bind the 'back' texture onto the framebuffer so
+        #    that we'll draw onto it.
+        #
+        # 2. Bind the 'front' texture to index 0. This is
+        #    passed to the shader by setting the
+        #    cellGridTexture uniform below.
+        #
+        _framebuffers["step"].attach(_textures["back"])
+        _textures["front"].bind(0)
+        _igloo.gl.viewport(0, 0, _cellGridSize.x as int, _cellGridSize.y as int)
+        _programs["gol"]
+            .use
+            .attrib("quad", _buffers["quad"], 2)
+            .uniformi("cellGridTexture", 0)
+            .uniform("cellGridSize", _cellGridSize.toFloatArray)
+            .draw(_igloo.gl.TRIANGLE_STRIP, 4)
+
+        # Swap the front and back textures
+        const tmp = _textures["front"]
+        _textures["front"] = _textures["back"]
+        _textures["back"] = tmp
+    }
+
+    def draw {
+        # As per the comment at the top of 'step', the current grid
+        # state is stored in the 'front' texture. So we bind that to
+        # index 0 and pass that to the shader as cellGridTexture.
+        _igloo.defaultFramebuffer.bind
+        _textures["front"].bind(0)
+        _igloo.gl.viewport(0, 0, _canvasSize.x as int, _canvasSize.y as int)
+        _programs["copy"]
+            .use
+            .attrib("quad", _buffers["quad"], 2)
+            .uniformi("cellGridTexture", 0)
+            .uniform("canvasSize", _canvasSize.toFloatArray)
+            .uniform("pageSize", Float32Array.new([_canvas.width, _canvas.height]))
+            .draw(_igloo.gl.TRIANGLE_STRIP, 4)
+    }
+
     def start {
-        if _timer == null {
-            _timer = Box<Interval>.new(setInterval(() => {
-                step
-                draw
-            }, 60))
-        }
-    }
-
-    def stop {
-        clearInterval(_timer.value)
-        _timer = null
-    }
-
-    def toggle {
-        if _timer == null {
-            start
-        } else {
-            stop
-        }
+        setInterval(() => {
+            step
+            draw
+        }, 60)
     }
 }
 

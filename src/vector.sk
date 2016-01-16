@@ -101,6 +101,7 @@ class Vector {
 	def clone Vector { return new(x, y) }
 	def toString string { return "Vector(\(x), \(y))" }
     def toStringAsInts string { return "Vector(\(x as int), \(y as int))" }
+    def toFloatArray Float32Array { return Float32Array.new([x, y]) }
 }
 
 namespace Vector {
