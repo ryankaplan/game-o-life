@@ -8,16 +8,10 @@ namespace console {
     const log dynamic
 }
 
-def timeInSeconds double {
-    return Math.floor(Date.now / 1000)
-}
-
 class GameOfLife {
     var canvas HTMLCanvasElement
     var igloo Igloo
     var timer Box<Interval>
-    var lastTick double = -1
-    var fps int
     var programs StringMap<Igloo.Program>
     var buffers StringMap<Igloo.Buffer>
     var textures StringMap<Igloo.Texture>
@@ -33,19 +27,10 @@ class GameOfLife {
         if igloo.gl == null {
             throw "Bah!"
         }
-        if scale < 0 {
-            scale = 1
-        }
-
-        # TODO(ryan): Shouldn't have to set this explicitly
-        canvas.width = 1024
-        canvas.height = 512
 
         viewSize = Float32Array.new([canvas.width, canvas.height])
         stateSize = Float32Array.new([canvas.width / scale, canvas.height / scale])
         timer = null
-        lastTick = timeInSeconds
-        fps = 0
 
         var gl = igloo.gl
         gl.disable(gl.DEPTH_TEST)
@@ -103,14 +88,6 @@ class GameOfLife {
     }
 
     def step {
-        # TODO(ryan): can do better than this to calculate fps
-        if timeInSeconds != lastTick {
-            lastTick = timeInSeconds
-            fps = 0
-        } else {
-            fps += 1
-        }
-
         const gl = igloo.gl
         framebuffers["step"].attach(textures["back"])
         textures["front"].bind(0)
@@ -193,7 +170,7 @@ class HTMLWindow {
 def main {
     window.onload = => {
         const canvas = document.getElementById("gol-canvas") as HTMLCanvasElement
-        const gol = GameOfLife.new(canvas, 1)
+        const gol = GameOfLife.new(canvas, 4)
         gol.draw
         gol.start
     }
