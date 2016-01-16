@@ -1,8 +1,10 @@
 ## Game of Life implementation on the GPU
 
-This is pretty much a port of [this implementation of Game of Life on the GPU](http://nullprogram.com/blog/2014/06/10/) to [Skew](http://skew-lang.org/).
+This is pretty much a port of [Skeeto](https://github.com/skeeto)'s [Game of Life implementation in JS](http://nullprogram.com/blog/2014/06/10/).
 
-I wrote it as a way to play around with Skew and with WebGL. You can run it with...
+I wrote in [Skew](http://skew-lang.org/) to play around with the language. You can see a demo [here](https://rykap.com/game-o-life).
+
+Or, if you want to run it locally:
 
 ```
 npm install
