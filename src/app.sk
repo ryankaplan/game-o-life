@@ -91,30 +91,29 @@ class GameOfLife {
     }
 
     def step {
-        const gl = _igloo.gl
         _framebuffers["step"].attach(_textures["back"])
         _textures["front"].bind(0)
-        gl.viewport(0, 0, _stateSize[0] as int, _stateSize[1] as int)
+        _igloo.gl.viewport(0, 0, _stateSize[0] as int, _stateSize[1] as int)
         _programs["gol"]
             .use
             .attrib("quad", _buffers["quad"], 2)
             .uniformi("state", 0)
             .uniform("scale", _stateSize)
-            .draw(gl.TRIANGLE_STRIP, 4)
+            .draw(_igloo.gl.TRIANGLE_STRIP, 4)
         swap
     }
 
     def draw {
-        const gl = _igloo.gl
         _igloo.defaultFramebuffer.bind
         _textures["front"].bind(0)
-        gl.viewport(0, 0, _viewSize[0] as int, _viewSize[1] as int)
+        _igloo.gl.viewport(0, 0, _viewSize[0] as int, _viewSize[1] as int)
         _programs["copy"]
             .use
             .attrib("quad", _buffers["quad"], 2)
             .uniformi("state", 0)
             .uniform("scale", _viewSize)
-            .draw(gl.TRIANGLE_STRIP, 4)
+            .uniform("pageSize", Float32Array.new([_canvas.width, _canvas.height]))
+            .draw(_igloo.gl.TRIANGLE_STRIP, 4)
     }
 
     def poke(x int, y int, state bool) {
@@ -157,10 +156,6 @@ class GameOfLife {
             stop
         }
     }
-
-    def eventCoord {
-        # TODO(ryan)
-    }
 }
 
 
@@ -169,13 +164,18 @@ class HTMLWindow {
     var onresize dynamic
 }
 
+const canvasSize = 512
+const cellSize = 1
+
 @entry
 def main {
     window.onload = => {
         const canvas = document.getElementById("gol-canvas") as HTMLCanvasElement
-        const gol = GameOfLife.new(canvas, 4)
-        gol.draw
-        gol.start
+        canvas.width = canvasSize
+        canvas.height = canvasSize
+        const simulation = GameOfLife.new(canvas, cellSize)
+        simulation.draw
+        simulation.start
     }
 }
 
