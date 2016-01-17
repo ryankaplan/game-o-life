@@ -277,7 +277,7 @@
     HTML.on(self, type, listener);
   };
 
-  Controller.gridSize = 4096;
+  Controller.gridSize = 1024;
   ZoomMouseBehavior.minSize = 15;
   ZoomMouseBehavior.maxSize = 2500;
 
