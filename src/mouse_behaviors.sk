@@ -1,0 +1,74 @@
+interface MouseBehavior {
+    def down(x int, y int)
+    def move(x int, y int)
+    def up(x int, y int)
+    def scroll(delta double)
+}
+
+############################################################################
+
+class DragMouseBehavior :: MouseBehavior {
+    var _controller Controller
+
+    var _onDownCanvasSpace Box<Vector> = null
+    var _onDownViewportOffset Box<Vector> = null
+
+    def down(x int, y int) {
+        _onDownCanvasSpace = Box<Vector>.new(Vector.new(x, y))
+        _onDownViewportOffset = Box<Vector>.new(_controller.viewportOffset)
+    }
+
+    def move(x int, y int) {
+        if _onDownCanvasSpace == null {
+            return
+        }
+
+        const delta = _delta(x, y)
+        _controller.viewportOffset = _onDownViewportOffset.value + delta
+    }
+
+    def up(x int, y int) {
+        const delta = _delta(x, y)
+        _controller.viewportOffset = _onDownViewportOffset.value + delta
+        _reset
+    }
+
+    def scroll(delta double) {}
+
+    def _reset {
+        _onDownCanvasSpace = null
+        _onDownViewportOffset = null
+    }
+
+    def _delta(x int, y int) Vector {
+        const delta = _onDownCanvasSpace.value - Vector.new(x, y)
+        delta.y *= -1
+        return delta
+    }
+}
+
+############################################################################
+
+namespace ZoomMouseBehavior {
+    const minSize = 15
+    const maxSize = 2500
+}
+
+class ZoomMouseBehavior :: MouseBehavior {
+    var _controller Controller
+
+    def down(x int, y int) {}
+    def move(x int, y int) {}
+    def up(x int, y int) {}
+
+    def scroll(delta_ double) {
+        const delta = Vector.new(delta_, delta_)
+        const newOffset = _controller.viewportOffset - delta / 2
+        const newSize = _controller.viewportSize + delta
+
+        if newSize.x > minSize && newSize.y > minSize && newSize.x < maxSize && newSize.y < maxSize {
+            _controller.viewportOffset = newOffset
+            _controller.viewportSize = newSize
+        }
+    }
+}

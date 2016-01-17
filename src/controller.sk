@@ -1,6 +1,6 @@
 
 namespace Controller {
-    var gridSize = 1024
+    var gridSize = 4096
 }
 
 class Controller {
@@ -11,14 +11,16 @@ class Controller {
     var _program Igloo.Program
     var _quadBuffer Igloo.Buffer
 
+    var _mouseBehaviors List<MouseBehavior>
+
     # viewport co-ordinates in grid-space
-    var _viewportOffset Float32Array
-    var _viewportSize Float32Array
+    var viewportOffset Vector
+    var viewportSize Vector
 
     def new(canvas HTMLCanvasElement) {
         _canvas = canvas
-        _viewportOffset = Float32Array.new([0, 0])
-        _viewportSize = Float32Array.new([512, 512])
+        viewportOffset = Vector.new(0, 0)
+        viewportSize = Vector.new(512, 512)
 
         assert(_canvas.width == _canvas.height)
 
@@ -31,12 +33,15 @@ class Controller {
         _igloo.gl.disable(_igloo.gl.DEPTH_TEST)
         _program = _igloo.program("glsl/quad.vert", "glsl/draw_grid.frag")
         _quadBuffer = _igloo.array(Igloo.QUAD2)
+
+        _mouseBehaviors = [
+            DragMouseBehavior.new(self),
+            ZoomMouseBehavior.new(self)
+         ]
+        _bindMouseBehaviors
     }
 
     def draw {
-        _viewportOffset[0] = ((_viewportOffset[0] + 1) as int % gridSize)
-        _viewportOffset[1] = ((_viewportOffset[1] + 1) as int % gridSize)
-
         # As per the comment at the top of 'step', the current grid
         # state is stored in the 'front' texture. So we bind that to
         # index 0 and pass that to the shader as cellGridTexture.
@@ -47,8 +52,8 @@ class Controller {
             .use
             .attrib("quad", _quadBuffer, 2)
             .uniformi("cellGridTexture", 0)
-            .uniform("viewportOffset", _viewportOffset)
-            .uniform("viewportSize", _viewportSize)
+            .uniform("viewportOffset", viewportOffset.toFloat32Array)
+            .uniform("viewportSize", viewportSize.toFloat32Array)
             .uniform("gridSize", Float32Array.new([_simulation.gridSize, _simulation.gridSize]))
             .uniform("canvasSize", Float32Array.new([_canvas.width, _canvas.height]))
             .draw(_igloo.gl.TRIANGLE_STRIP, 4)
@@ -59,5 +64,31 @@ class Controller {
             _simulation.step
             draw
         }, 60)
+    }
+
+    def _bindMouseBehaviors {
+        _canvas.addEventListener("mousedown", (e HTMLMouseEvent) => {
+            for behavior in _mouseBehaviors {
+                behavior.down(e.offsetX, e.offsetY)
+            }
+        })
+
+        _canvas.addEventListener("mousemove", (e HTMLMouseEvent) => {
+            for behavior in _mouseBehaviors {
+                behavior.move(e.offsetX, e.offsetY)
+            }
+        })
+
+        _canvas.addEventListener("mouseup", (e HTMLMouseEvent) => {
+            for behavior in _mouseBehaviors {
+                behavior.up(e.offsetX, e.offsetY)
+            }
+        })
+
+        _canvas.addEventListener("wheel", (e HTMLWheelEvent) => {
+            for behavior in _mouseBehaviors {
+                behavior.scroll(e.deltaY)
+            }
+        })
     }
 }

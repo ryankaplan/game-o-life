@@ -36,7 +36,9 @@ var sources = [
 
     'src/app.sk',
     'src/controller.sk',
-    'src/simulation.sk'
+    'src/mouse_behaviors.sk',
+    'src/simulation.sk',
+    'src/vector.sk'
 ];
 
 desc('Build Skew -> Javascript for debug');
