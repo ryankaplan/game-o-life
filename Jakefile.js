@@ -30,14 +30,13 @@ directory(buildDir);
 var sources = [
     'src/imports/2d.sk',
     'src/imports/html.sk',
+    'src/imports/igloo.sk',
     'src/imports/typedarray.sk',
     'src/imports/webgl.sk',
 
     'src/app.sk',
-    'src/igloo.sk',
-    'src/lang.sk',
-    'src/shapes.sk',
-    'src/vector.sk'
+    'src/controller.sk',
+    'src/simulation.sk'
 ];
 
 desc('Build Skew -> Javascript for debug');
