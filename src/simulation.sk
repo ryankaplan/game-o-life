@@ -3,7 +3,7 @@ class Simulation {
     var _igloo Igloo
 
     # Width and height of Game of Life grid. It's always square.
-    var _gridSize int
+    var gridSize int
 
     var _program Igloo.Program
     var _quadBuffer Igloo.Buffer
@@ -11,21 +11,21 @@ class Simulation {
     var _destTexture Igloo.Texture
     var _framebuffer Igloo.FrameBuffer
 
-    def new(igloo Igloo, gridSize int) {
+    def new(igloo Igloo, gridSize_ int) {
         _igloo = igloo
-        _gridSize = gridSize
+        gridSize = gridSize_
 
         var gl = _igloo.gl
         gl.disable(gl.DEPTH_TEST)
 
-        _program = _igloo.program("glsl/quad.vert", "glsl/gol.frag")
+        _program = _igloo.program("glsl/quad.vert", "glsl/game_of_life.frag")
         _quadBuffer = igloo.array(Igloo.QUAD2)
-        _sourceTexture = _igloo.texture(null, gl.RGBA, gl.REPEAT, gl.NEAREST).blank(_gridSize, _gridSize)
-        _destTexture = _igloo.texture(null, gl.RGBA, gl.REPEAT, gl.NEAREST).blank(_gridSize, _gridSize)
+        _sourceTexture = _igloo.texture(null, gl.RGBA, gl.REPEAT, gl.NEAREST).blank(gridSize, gridSize)
+        _destTexture = _igloo.texture(null, gl.RGBA, gl.REPEAT, gl.NEAREST).blank(gridSize, gridSize)
         _framebuffer = _igloo.framebuffer
 
         # Initialize the cell grid with random values
-        const randomGrid = Uint8Array.new(_gridSize * _gridSize)
+        const randomGrid = Uint8Array.new(gridSize * gridSize)
         for i in 0..randomGrid.length {
             randomGrid[i] = Math.random < 0.5 ? 1 : 0
         }
@@ -37,7 +37,7 @@ class Simulation {
     }
 
     def setCellGrid(inputGrid Uint8Array) {
-        var rgba = Uint8Array.new(_gridSize * _gridSize * 4)
+        var rgba = Uint8Array.new(gridSize * gridSize * 4)
         for i in 0..inputGrid.length {
             var j = i * 4
             rgba[j + 0] = inputGrid[i] == 1 ? 255 : 0
@@ -45,13 +45,13 @@ class Simulation {
             rgba[j + 2] = inputGrid[i] == 1 ? 255 : 0
             rgba[j + 3] = 255
         }
-        _sourceTexture.subset(rgba, 0, 0, _gridSize, _gridSize)
+        _sourceTexture.subset(rgba, 0, 0, gridSize, gridSize)
     }
 
     def getCellGrid Uint8Array {
         const gl = _igloo.gl
-        const w = _gridSize
-        const h = _gridSize
+        const w = gridSize
+        const h = gridSize
         _framebuffer.attach(_sourceTexture)
         const rgba = Uint8Array.new(w * h * 4)
         gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, rgba)
@@ -75,12 +75,12 @@ class Simulation {
         #
         _framebuffer.attach(_destTexture)
         _sourceTexture.bind(0)
-        _igloo.gl.viewport(0, 0, _gridSize, _gridSize)
+        _igloo.gl.viewport(0, 0, gridSize, gridSize)
         _program
             .use
             .attrib("quad", _quadBuffer, 2)
             .uniformi("cellGridTexture", 0)
-            .uniform("cellGridSize", Float32Array.new([_gridSize, _gridSize]))
+            .uniform("cellGridSize", Float32Array.new([gridSize, gridSize]))
             .draw(_igloo.gl.TRIANGLE_STRIP, 4)
 
         # Swap the source and destination textures

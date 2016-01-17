@@ -12,15 +12,10 @@ class HTMLWindow {
     var onresize dynamic
 }
 
-# Canvas is always square
-const canvasSize = 512
-
 @entry
 def main {
     window.onload = => {
         const canvas = document.getElementById("gol-canvas") as HTMLCanvasElement
-        canvas.width = canvasSize
-        canvas.height = canvasSize
         const controller = Controller.new(canvas)
         controller.draw
         controller.start

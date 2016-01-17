@@ -1,51 +1,56 @@
 
+namespace Controller {
+    var gridSize = 1024
+}
+
 class Controller {
     var _canvas HTMLCanvasElement
     var _simulation Simulation
     var _igloo Igloo
-    var _programs StringMap<Igloo.Program>
-    var _buffers StringMap<Igloo.Buffer>
 
-    # Size of the canvas HTML element. This is the size of our view-textures.
-    var _canvasSize int
+    var _program Igloo.Program
+    var _quadBuffer Igloo.Buffer
+
+    # viewport co-ordinates in grid-space
+    var _viewportOffset Float32Array
+    var _viewportSize Float32Array
 
     def new(canvas HTMLCanvasElement) {
         _canvas = canvas
-        _canvasSize = _canvas.width
+        _viewportOffset = Float32Array.new([0, 0])
+        _viewportSize = Float32Array.new([512, 512])
+
         assert(_canvas.width == _canvas.height)
 
         _igloo = Igloo.new(canvas)
         if _igloo.gl == null {
-            throw "TODO(ryan): handle this"
+            throw Error.new("Failed to initialize Igloo")
         }
 
-        _simulation = Simulation.new(_igloo, _canvas.width / cellSize)
-
-        var gl = _igloo.gl
-        gl.disable(gl.DEPTH_TEST)
-
-        _programs = {
-            "copy": _igloo.program("glsl/quad.vert", "glsl/copy.frag")
-        }
-
-        _buffers = {
-            "quad": _igloo.array(Igloo.QUAD2)
-        }
+        _simulation = Simulation.new(_igloo, gridSize)
+        _igloo.gl.disable(_igloo.gl.DEPTH_TEST)
+        _program = _igloo.program("glsl/quad.vert", "glsl/draw_grid.frag")
+        _quadBuffer = _igloo.array(Igloo.QUAD2)
     }
 
     def draw {
+        _viewportOffset[0] = ((_viewportOffset[0] + 1) as int % gridSize)
+        _viewportOffset[1] = ((_viewportOffset[1] + 1) as int % gridSize)
+
         # As per the comment at the top of 'step', the current grid
         # state is stored in the 'front' texture. So we bind that to
         # index 0 and pass that to the shader as cellGridTexture.
         _igloo.defaultFramebuffer.bind
         _simulation.gridTexture.bind(0)
-        _igloo.gl.viewport(0, 0, _canvasSize, _canvasSize)
-        _programs["copy"]
+        _igloo.gl.viewport(0, 0, _canvas.width, _canvas.height)
+        _program
             .use
-            .attrib("quad", _buffers["quad"], 2)
+            .attrib("quad", _quadBuffer, 2)
             .uniformi("cellGridTexture", 0)
-            .uniform("canvasSize", Float32Array.new([_canvasSize, _canvasSize]))
-            .uniform("pageSize", Float32Array.new([_canvas.width, _canvas.height]))
+            .uniform("viewportOffset", _viewportOffset)
+            .uniform("viewportSize", _viewportSize)
+            .uniform("gridSize", Float32Array.new([_simulation.gridSize, _simulation.gridSize]))
+            .uniform("canvasSize", Float32Array.new([_canvas.width, _canvas.height]))
             .draw(_igloo.gl.TRIANGLE_STRIP, 4)
     }
 
