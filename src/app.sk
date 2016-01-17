@@ -3,62 +3,45 @@ namespace console {
     const log dynamic
 }
 
-class GameOfLife {
-    var _canvas HTMLCanvasElement
+class Simulation {
     var _igloo Igloo
-    var _programs StringMap<Igloo.Program>
-    var _buffers StringMap<Igloo.Buffer>
-    var _textures StringMap<Igloo.Texture>
-    var _framebuffers StringMap<Igloo.FrameBuffer>
 
-    # Size of the canvas HTML element. This is the size of our view-textures.
-    var _canvasSize Vector
+    # Width and height of Game of Life grid
+    var _gridSize int
 
-    # Size of the game of life cell grid. This is _canvasSize / cellSize
-    var _cellGridSize Vector
+    var _program Igloo.Program
+    var _quadBuffer Igloo.Buffer
+    var _sourceTexture Igloo.Texture
+    var _destTexture Igloo.Texture
+    var _framebuffer Igloo.FrameBuffer
 
-    def new(canvas HTMLCanvasElement, cellSize int) {
-        _canvas = canvas
-        _canvasSize = Vector.new(_canvas.width, _canvas.height)
-        _cellGridSize = Vector.new(_canvas.width / cellSize, _canvas.height / cellSize)
-
-        _igloo = Igloo.new(canvas)
-        console.log(_igloo.defaultFramebuffer)
-        if _igloo.gl == null {
-            throw "TODO(ryan): handle this"
-        }
+    def new(igloo Igloo, gridSize int) {
+        _igloo = igloo
+        _gridSize = gridSize
 
         var gl = _igloo.gl
         gl.disable(gl.DEPTH_TEST)
 
-        _programs = {
-            "copy": _igloo.program("glsl/quad.vert", "glsl/copy.frag"),
-            "gol": _igloo.program("glsl/quad.vert", "glsl/gol.frag")
-        }
-
-        _buffers = {
-            "quad": _igloo.array(Igloo.QUAD2)
-        }
-
-        _textures = {
-            "front": _igloo.texture(null, gl.RGBA, gl.REPEAT, gl.NEAREST).blank(_cellGridSize.x as int, _cellGridSize.y as int),
-            "back": _igloo.texture(null, gl.RGBA, gl.REPEAT, gl.NEAREST).blank(_cellGridSize.x as int, _cellGridSize.y as int)
-        }
-
-        _framebuffers = {
-            "step": _igloo.framebuffer
-        }
+        _program = _igloo.program("glsl/quad.vert", "glsl/gol.frag")
+        _quadBuffer = igloo.array(Igloo.QUAD2)
+        _sourceTexture = _igloo.texture(null, gl.RGBA, gl.REPEAT, gl.NEAREST).blank(_gridSize, _gridSize)
+        _destTexture = _igloo.texture(null, gl.RGBA, gl.REPEAT, gl.NEAREST).blank(_gridSize, _gridSize)
+        _framebuffer = _igloo.framebuffer
 
         # Initialize the cell grid with random values
-        const randomGrid = Uint8Array.new((_cellGridSize.x * _cellGridSize.y) as int)
+        const randomGrid = Uint8Array.new(_gridSize * _gridSize)
         for i in 0..randomGrid.length {
             randomGrid[i] = Math.random < 0.5 ? 1 : 0
         }
         setCellGrid(randomGrid)
     }
 
-    def setCellGrid(inputGrid Uint8Array) GameOfLife {
-        var rgba = Uint8Array.new((_cellGridSize.x * _cellGridSize.y * 4) as int)
+    def gridTexture Igloo.Texture {
+        return _sourceTexture
+    }
+
+    def setCellGrid(inputGrid Uint8Array) {
+        var rgba = Uint8Array.new(_gridSize * _gridSize * 4)
         for i in 0..inputGrid.length {
             var j = i * 4
             rgba[j + 0] = inputGrid[i] == 1 ? 255 : 0
@@ -66,15 +49,14 @@ class GameOfLife {
             rgba[j + 2] = inputGrid[i] == 1 ? 255 : 0
             rgba[j + 3] = 255
         }
-        _textures["front"].subset(rgba, 0, 0, _cellGridSize.x as int, _cellGridSize.y as int)
-        return self
+        _sourceTexture.subset(rgba, 0, 0, _gridSize, _gridSize)
     }
 
     def getCellGrid Uint8Array {
         const gl = _igloo.gl
-        const w = _cellGridSize.x as int
-        const h = _cellGridSize.y as int
-        _framebuffers["step"].attach(_textures["front"])
+        const w = _gridSize
+        const h = _gridSize
+        _framebuffer.attach(_sourceTexture)
         const rgba = Uint8Array.new(w * h * 4)
         gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, rgba)
         const state = Uint8Array.new(w * h)
@@ -85,30 +67,69 @@ class GameOfLife {
     }
 
     def step {
-        # The current simulation state is always in the front
-        # texture and we draw onto the back texture. So...
+        # The current simulation state is always in _sourceTexture
+        # and we draw onto _destTexture. So...
         #
-        # 1. Bind the 'back' texture onto the framebuffer so
-        #    that we'll draw onto it.
+        # 1. Bind the _destTexture onto the framebuffer so that
+        #    we'll draw onto it.
         #
-        # 2. Bind the 'front' texture to index 0. This is
+        # 2. Bind _sourceTexture texture to index 0. This is
         #    passed to the shader by setting the
         #    cellGridTexture uniform below.
         #
-        _framebuffers["step"].attach(_textures["back"])
-        _textures["front"].bind(0)
-        _igloo.gl.viewport(0, 0, _cellGridSize.x as int, _cellGridSize.y as int)
-        _programs["gol"]
+        _framebuffer.attach(_destTexture)
+        _sourceTexture.bind(0)
+        _igloo.gl.viewport(0, 0, _gridSize, _gridSize)
+        _program
             .use
-            .attrib("quad", _buffers["quad"], 2)
+            .attrib("quad", _quadBuffer, 2)
             .uniformi("cellGridTexture", 0)
-            .uniform("cellGridSize", _cellGridSize.toFloatArray)
+            .uniform("cellGridSize", Float32Array.new([_gridSize, _gridSize]))
             .draw(_igloo.gl.TRIANGLE_STRIP, 4)
 
-        # Swap the front and back textures
-        const tmp = _textures["front"]
-        _textures["front"] = _textures["back"]
-        _textures["back"] = tmp
+        # Swap the source and destination textures
+        const tmp = _sourceTexture
+        _sourceTexture = _destTexture
+        _destTexture = tmp
+    }
+}
+
+namespace Controller {
+    const cellSize = 1
+}
+
+class Controller {
+    var _canvas HTMLCanvasElement
+    var _simulation Simulation
+    var _igloo Igloo
+    var _programs StringMap<Igloo.Program>
+    var _buffers StringMap<Igloo.Buffer>
+
+    # Size of the canvas HTML element. This is the size of our view-textures.
+    var _canvasSize int
+
+    def new(canvas HTMLCanvasElement) {
+        _canvas = canvas
+        _canvasSize = _canvas.width
+        assert(_canvas.width == _canvas.height)
+
+        _igloo = Igloo.new(canvas)
+        if _igloo.gl == null {
+            throw "TODO(ryan): handle this"
+        }
+
+        _simulation = Simulation.new(_igloo, _canvas.width / cellSize)
+
+        var gl = _igloo.gl
+        gl.disable(gl.DEPTH_TEST)
+
+        _programs = {
+            "copy": _igloo.program("glsl/quad.vert", "glsl/copy.frag")
+        }
+
+        _buffers = {
+            "quad": _igloo.array(Igloo.QUAD2)
+        }
     }
 
     def draw {
@@ -116,20 +137,20 @@ class GameOfLife {
         # state is stored in the 'front' texture. So we bind that to
         # index 0 and pass that to the shader as cellGridTexture.
         _igloo.defaultFramebuffer.bind
-        _textures["front"].bind(0)
-        _igloo.gl.viewport(0, 0, _canvasSize.x as int, _canvasSize.y as int)
+        _simulation.gridTexture.bind(0)
+        _igloo.gl.viewport(0, 0, _canvasSize, _canvasSize)
         _programs["copy"]
             .use
             .attrib("quad", _buffers["quad"], 2)
             .uniformi("cellGridTexture", 0)
-            .uniform("canvasSize", _canvasSize.toFloatArray)
+            .uniform("canvasSize", Float32Array.new([_canvasSize, _canvasSize]))
             .uniform("pageSize", Float32Array.new([_canvas.width, _canvas.height]))
             .draw(_igloo.gl.TRIANGLE_STRIP, 4)
     }
 
     def start {
         setInterval(() => {
-            step
+            _simulation.step
             draw
         }, 60)
     }
@@ -142,7 +163,6 @@ class HTMLWindow {
 }
 
 const canvasSize = 512
-const cellSize = 1
 
 @entry
 def main {
@@ -150,9 +170,9 @@ def main {
         const canvas = document.getElementById("gol-canvas") as HTMLCanvasElement
         canvas.width = canvasSize
         canvas.height = canvasSize
-        const simulation = GameOfLife.new(canvas, cellSize)
-        simulation.draw
-        simulation.start
+        const controller = Controller.new(canvas)
+        controller.draw
+        controller.start
     }
 }
 
