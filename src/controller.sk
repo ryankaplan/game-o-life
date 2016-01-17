@@ -1,6 +1,6 @@
 
 namespace Controller {
-    var gridSize = 4096
+    var gridSize = 1024
 }
 
 class Controller {
