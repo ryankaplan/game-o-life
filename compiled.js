@@ -29,15 +29,16 @@
     this._program = null;
     this._quadBuffer = null;
     this._mouseBehaviors = null;
-    this.viewportOffset = null;
-    this.viewportSize = null;
+    this.viewport = null;
     this._canvas = canvas;
-    this.viewportOffset = new Vector(0, 0);
-    this.viewportSize = new Vector(512, 512);
+    this.viewport = new Rect(0, 0, 512, 512);
     assert(this._canvas.width == this._canvas.height);
     this._igloo = new Igloo(canvas);
 
     if (this._igloo.gl == null) {
+      document.getElementById('app-container').style.display = 'none';
+      document.getElementById('webgl-error').style.display = null;
+
       throw new Error('Failed to initialize Igloo');
     }
 
@@ -49,6 +50,10 @@
     this._bindMouseBehaviors();
   }
 
+  Controller.prototype.canvas = function() {
+    return this._canvas;
+  };
+
   Controller.prototype.draw = function() {
     // As per the comment at the top of 'step', the current grid
     // state is stored in the 'front' texture. So we bind that to
@@ -56,7 +61,7 @@
     this._igloo.defaultFramebuffer.bind();
     this._simulation.gridTexture().bind(0);
     this._igloo.gl.viewport(0, 0, this._canvas.width, this._canvas.height);
-    this._program.use().attrib('quad', this._quadBuffer, 2).uniformi('cellGridTexture', 0).uniform('viewportOffset', this.viewportOffset.toFloat32Array()).uniform('viewportSize', this.viewportSize.toFloat32Array()).uniform('gridSize', new Float32Array([this._simulation.gridSize, this._simulation.gridSize])).uniform('canvasSize', new Float32Array([this._canvas.width, this._canvas.height])).draw(this._igloo.gl.TRIANGLE_STRIP, 4);
+    this._program.use().attrib('quad', this._quadBuffer, 2).uniformi('cellGridTexture', 0).uniform('viewportOffset', this.viewport.origin.toFloat32Array()).uniform('viewportSize', this.viewport.size.toFloat32Array()).uniform('gridSize', new Float32Array([this._simulation.gridSize, this._simulation.gridSize])).uniform('canvasSize', new Float32Array([this._canvas.width, this._canvas.height])).draw(this._igloo.gl.TRIANGLE_STRIP, 4);
   };
 
   Controller.prototype.start = function() {
@@ -97,27 +102,35 @@
 
   function DragMouseBehavior(_controller) {
     this._controller = _controller;
-    this._onDownCanvasSpace = null;
-    this._onDownViewportOffset = null;
+    this._onDownGridSpace = null;
+    this._onDownViewport = null;
   }
 
   DragMouseBehavior.prototype.down = function(x, y) {
-    this._onDownCanvasSpace = new Box(new Vector(x, y));
-    this._onDownViewportOffset = new Box(this._controller.viewportOffset);
+    this._onDownViewport = new Box(this._controller.viewport.clone());
+    this._onDownGridSpace = new Box(this._gridSpaceFromCanvasSpace(x, y));
   };
 
   DragMouseBehavior.prototype.move = function(x, y) {
-    if (this._onDownCanvasSpace == null) {
+    if (this._onDownGridSpace == null) {
       return;
     }
 
-    var delta = this._delta(x, y);
-    this._controller.viewportOffset = this._onDownViewportOffset.value.add(delta);
+    var onMoveGridSpace = this._gridSpaceFromCanvasSpace(x, y);
+    var delta = this._delta(onMoveGridSpace);
+    this._controller.viewport.origin = this._onDownViewport.value.origin.add(delta);
   };
 
   DragMouseBehavior.prototype.up = function(x, y) {
-    var delta = this._delta(x, y);
-    this._controller.viewportOffset = this._onDownViewportOffset.value.add(delta);
+    if (this._onDownGridSpace != null) {
+      var onUpGridSpace = this._gridSpaceFromCanvasSpace(x, y);
+      var delta = this._delta(onUpGridSpace);
+
+      if (delta.length() > 10) {
+        this._controller.viewport.origin = this._onDownViewport.value.origin.add(delta);
+      }
+    }
+
     this._reset();
   };
 
@@ -125,12 +138,26 @@
   };
 
   DragMouseBehavior.prototype._reset = function() {
-    this._onDownCanvasSpace = null;
-    this._onDownViewportOffset = null;
+    this._onDownGridSpace = null;
+    this._onDownViewport = null;
   };
 
-  DragMouseBehavior.prototype._delta = function(x, y) {
-    var delta = this._onDownCanvasSpace.value.subtract(new Vector(x, y));
+  DragMouseBehavior.prototype._gridSpaceFromCanvasSpace = function(x, y) {
+    if (this._onDownViewport == null) {
+      throw new Error('TODO(ryan)');
+    }
+
+    var canvasSize = new Vector(this._controller.canvas().width, this._controller.canvas().height);
+    var canvasSpaceUv = new Vector(x, y).divide(canvasSize);
+    return this._onDownViewport.value.pointAtUvCoordinate(canvasSpaceUv);
+  };
+
+  DragMouseBehavior.prototype._delta = function(newLocation) {
+    if (this._onDownGridSpace == null) {
+      throw new Error('TODO(ryan)');
+    }
+
+    var delta = this._onDownGridSpace.value.subtract(newLocation);
     delta.y *= -1;
     return delta;
   };
@@ -150,13 +177,28 @@
 
   ZoomMouseBehavior.prototype.scroll = function(delta_) {
     var delta = new Vector(delta_, delta_);
-    var newOffset = this._controller.viewportOffset.subtract(delta.divide1(2));
-    var newSize = this._controller.viewportSize.add(delta);
+    var newOffset = this._controller.viewport.origin.subtract(delta.divide1(2));
+    var newSize = this._controller.viewport.size.add(delta);
 
     if (newSize.x > ZoomMouseBehavior.minSize && newSize.y > ZoomMouseBehavior.minSize && newSize.x < ZoomMouseBehavior.maxSize && newSize.y < ZoomMouseBehavior.maxSize) {
-      this._controller.viewportOffset = newOffset;
-      this._controller.viewportSize = newSize;
+      this._controller.viewport.origin = newOffset;
+      this._controller.viewport.size = newSize;
     }
+  };
+
+  function Rect(left, top, width, height) {
+    this.origin = Vector.new1();
+    this.size = Vector.new1();
+    this.origin = new Vector(left, top);
+    this.size = new Vector(width, height);
+  }
+
+  Rect.prototype.clone = function() {
+    return new Rect(this.origin.x, this.origin.y, this.size.x, this.size.y);
+  };
+
+  Rect.prototype.pointAtUvCoordinate = function(uv) {
+    return this.origin.add(uv.multiply(this.size));
   };
 
   function Simulation(igloo, gridSize_) {
@@ -242,12 +284,28 @@
     return new Vector(this.x - v.x, this.y - v.y);
   };
 
+  Vector.prototype.multiply = function(v) {
+    return new Vector(this.x * v.x, this.y * v.y);
+  };
+
+  Vector.prototype.divide = function(v) {
+    return new Vector(this.x / v.x, this.y / v.y);
+  };
+
   Vector.prototype.divide1 = function(d) {
     return new Vector(this.x / d, this.y / d);
   };
 
+  Vector.prototype.length = function() {
+    return Math.sqrt(this.x * this.x + this.y * this.y);
+  };
+
   Vector.prototype.toFloat32Array = function() {
     return new Float32Array([this.x, this.y]);
+  };
+
+  Vector.new1 = function() {
+    return new Vector(0, 0);
   };
 
   var HTML = {};
