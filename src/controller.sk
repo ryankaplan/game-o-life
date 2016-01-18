@@ -13,19 +13,18 @@ class Controller {
 
     var _mouseBehaviors List<MouseBehavior>
 
-    # viewport co-ordinates in grid-space
-    var viewportOffset Vector
-    var viewportSize Vector
+    # viewport in grid-space
+    var viewport Rect
 
     def new(canvas HTMLCanvasElement) {
         _canvas = canvas
-        viewportOffset = Vector.new(0, 0)
-        viewportSize = Vector.new(512, 512)
-
+        viewport = Rect.new(0, 0, 512, 512)
         assert(_canvas.width == _canvas.height)
 
         _igloo = Igloo.new(canvas)
         if _igloo.gl == null {
+            document.getElementById("app-container").style.display = "none"
+            document.getElementById("webgl-error").style.display = null
             throw Error.new("Failed to initialize Igloo")
         }
 
@@ -41,6 +40,10 @@ class Controller {
         _bindMouseBehaviors
     }
 
+    def canvas HTMLCanvasElement {
+        return _canvas
+    }
+
     def draw {
         # As per the comment at the top of 'step', the current grid
         # state is stored in the 'front' texture. So we bind that to
@@ -52,8 +55,8 @@ class Controller {
             .use
             .attrib("quad", _quadBuffer, 2)
             .uniformi("cellGridTexture", 0)
-            .uniform("viewportOffset", viewportOffset.toFloat32Array)
-            .uniform("viewportSize", viewportSize.toFloat32Array)
+            .uniform("viewportOffset", viewport.origin.toFloat32Array)
+            .uniform("viewportSize", viewport.size.toFloat32Array)
             .uniform("gridSize", Float32Array.new([_simulation.gridSize, _simulation.gridSize]))
             .uniform("canvasSize", Float32Array.new([_canvas.width, _canvas.height]))
             .draw(_igloo.gl.TRIANGLE_STRIP, 4)

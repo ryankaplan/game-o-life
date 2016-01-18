@@ -10,38 +10,59 @@ interface MouseBehavior {
 class DragMouseBehavior :: MouseBehavior {
     var _controller Controller
 
-    var _onDownCanvasSpace Box<Vector> = null
-    var _onDownViewportOffset Box<Vector> = null
+    var _onDownGridSpace Box<Vector> = null
+    var _onDownViewport Box<Rect> = null
 
     def down(x int, y int) {
-        _onDownCanvasSpace = Box<Vector>.new(Vector.new(x, y))
-        _onDownViewportOffset = Box<Vector>.new(_controller.viewportOffset)
+        _onDownViewport = Box<Rect>.new(_controller.viewport.clone)
+        _onDownGridSpace = Box<Vector>.new(_gridSpaceFromCanvasSpace(x, y))
     }
 
     def move(x int, y int) {
-        if _onDownCanvasSpace == null {
+        if _onDownGridSpace == null {
             return
         }
 
-        const delta = _delta(x, y)
-        _controller.viewportOffset = _onDownViewportOffset.value + delta
+        const onMoveGridSpace = _gridSpaceFromCanvasSpace(x, y)
+        const delta = _delta(onMoveGridSpace)
+        _controller.viewport.origin = _onDownViewport.value.origin + delta
     }
 
     def up(x int, y int) {
-        const delta = _delta(x, y)
-        _controller.viewportOffset = _onDownViewportOffset.value + delta
+        if _onDownGridSpace != null {
+            const onUpGridSpace = _gridSpaceFromCanvasSpace(x, y)
+            const delta = _delta(onUpGridSpace)
+            if delta.length > 10 {
+                _controller.viewport.origin = _onDownViewport.value.origin + delta
+            }
+        }
+
         _reset
     }
 
     def scroll(delta double) {}
 
     def _reset {
-        _onDownCanvasSpace = null
-        _onDownViewportOffset = null
+        _onDownGridSpace = null
+        _onDownViewport = null
     }
 
-    def _delta(x int, y int) Vector {
-        const delta = _onDownCanvasSpace.value - Vector.new(x, y)
+    def _gridSpaceFromCanvasSpace(x int, y int) Vector {
+        if _onDownViewport == null {
+            throw Error.new("TODO(ryan)")
+        }
+
+        const canvasSize = Vector.new(_controller.canvas.width, _controller.canvas.height)
+        const canvasSpaceUv = Vector.new(x, y) / canvasSize
+        return _onDownViewport.value.pointAtUvCoordinate(canvasSpaceUv)
+    }
+
+    def _delta(newLocation Vector) Vector {
+        if _onDownGridSpace == null {
+            throw Error.new("TODO(ryan)")
+        }
+
+        const delta = _onDownGridSpace.value - newLocation
         delta.y *= -1
         return delta
     }
@@ -63,12 +84,12 @@ class ZoomMouseBehavior :: MouseBehavior {
 
     def scroll(delta_ double) {
         const delta = Vector.new(delta_, delta_)
-        const newOffset = _controller.viewportOffset - delta / 2
-        const newSize = _controller.viewportSize + delta
+        const newOffset = _controller.viewport.origin - delta / 2
+        const newSize = _controller.viewport.size + delta
 
         if newSize.x > minSize && newSize.y > minSize && newSize.x < maxSize && newSize.y < maxSize {
-            _controller.viewportOffset = newOffset
-            _controller.viewportSize = newSize
+            _controller.viewport.origin = newOffset
+            _controller.viewport.size = newSize
         }
     }
 }

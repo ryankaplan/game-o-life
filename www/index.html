@@ -9,12 +9,17 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
-      <div class="container">
+      <div id="app-container">
         <div class="instructions">
-            Drag to move around. Use the scroll-wheel to zoom.
+          Drag to move around. Use the scroll-wheel to zoom.
         </div>
 
         <canvas id="gol-canvas" width="512" height="512"></canvas>
+      </div>
+      <div id="webgl-error" style="display: none;">
+        This webpage uses WebGL which isn't supported by your browser. <br />
+        </br>
+        Sorry :(
       </div>
   </body>
 </html>

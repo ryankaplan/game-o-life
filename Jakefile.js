@@ -37,6 +37,7 @@ var sources = [
     'src/app.sk',
     'src/controller.sk',
     'src/mouse_behaviors.sk',
+    'src/rect.sk',
     'src/simulation.sk',
     'src/vector.sk'
 ];
