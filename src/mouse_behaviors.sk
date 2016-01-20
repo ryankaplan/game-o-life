@@ -49,7 +49,7 @@ class DragMouseBehavior :: MouseBehavior {
 
     def _gridSpaceFromCanvasSpace(x int, y int) Vector {
         if _onDownViewport == null {
-            throw Error.new("TODO(ryan)")
+            throw Error.new("Shouldn't call _gridSpaceFromCanvasSpace unless _onDownViewport is set")
         }
 
         const canvasSize = Vector.new(_controller.canvas.width, _controller.canvas.height)
@@ -59,7 +59,7 @@ class DragMouseBehavior :: MouseBehavior {
 
     def _delta(newLocation Vector) Vector {
         if _onDownGridSpace == null {
-            throw Error.new("TODO(ryan)")
+            throw Error.new("Shouldn't call _delta unless _onDownGridSpace is set")
         }
 
         const delta = _onDownGridSpace.value - newLocation
@@ -90,6 +90,9 @@ class ZoomMouseBehavior :: MouseBehavior {
         if newSize.x > minSize && newSize.y > minSize && newSize.x < maxSize && newSize.y < maxSize {
             _controller.viewport.origin = newOffset
             _controller.viewport.size = newSize
+
+            const canvasSize = Vector.new(_controller.canvas.width, _controller.canvas.height)
+            _controller.viewport.size.constrainToAspectRatio(canvasSize, Axis.Y)
         }
     }
 }

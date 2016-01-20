@@ -1,6 +1,11 @@
 # This class shamelessly stolen and edited from https://github.com/evanw/theta/blob/master/src/core/vector.sk
 # I started writing it myself and couldn't be bothered to type it all out
 
+enum Axis {
+    X
+    Y
+}
+
 class Vector {
 	var x double
 	var y double
@@ -102,6 +107,16 @@ class Vector {
 	def toString string { return "Vector(\(x), \(y))" }
     def toStringAsInts string { return "Vector(\(x as int), \(y as int))" }
     def toFloat32Array Float32Array { return Float32Array.new([x, y]) }
+
+    def constrainToAspectRatio(other Vector, freeAxis Axis) {
+        # TODO(ryan): change this to a switch statement once the skew
+        # compiler is fixed
+        if freeAxis == Axis.X {
+            x = y * other.x / other.y
+        } else {
+            y = x * other.y / other.x
+        }
+    }
 }
 
 namespace Vector {

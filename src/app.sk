@@ -15,10 +15,14 @@ class HTMLWindow {
 @entry
 def main {
     window.onload = => {
-        const canvas = document.getElementById("gol-canvas") as HTMLCanvasElement
+        const canvas = document.getElementById("game-of-life-canvas") as HTMLCanvasElement
         const controller = Controller.new(canvas)
         controller.draw
         controller.start
+        if !RELEASE {
+            # Expose this for in-browser debugging
+            (window as dynamic).controller = controller
+        }
     }
 }
 

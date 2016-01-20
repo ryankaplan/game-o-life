@@ -18,8 +18,7 @@ class Controller {
 
     def new(canvas HTMLCanvasElement) {
         _canvas = canvas
-        viewport = Rect.new(0, 0, 512, 512)
-        assert(_canvas.width == _canvas.height)
+        viewport = Rect.new(0, 0, 700, 700)
 
         _igloo = Igloo.new(canvas)
         if _igloo.gl == null {
@@ -38,6 +37,24 @@ class Controller {
             ZoomMouseBehavior.new(self)
          ]
         _bindMouseBehaviors
+        _onResize
+        window.addEventListener("resize", () => { _onResize })
+    }
+
+    def _onResize {
+        const canvasContainer dynamic = document.getElementById("canvas-container")
+        _canvas.width = canvasContainer.offsetWidth
+        _canvas.height = canvasContainer.offsetHeight
+
+        # Constrain the viewport size to the same aspect ratio
+        # as the canvas
+        viewport.size.constrainToAspectRatio(Vector.new(_canvas.width, _canvas.height), Axis.Y)
+
+        if !RELEASE {
+            const viewportAspectRatio = viewport.size.y / viewport.size.x
+            const canvasAspectRatio = _canvas.height as double / _canvas.width
+            assert(viewportAspectRatio - canvasAspectRatio < 0.001)
+        }
     }
 
     def canvas HTMLCanvasElement {
@@ -57,8 +74,8 @@ class Controller {
             .uniformi("cellGridTexture", 0)
             .uniform("viewportOffset", viewport.origin.toFloat32Array)
             .uniform("viewportSize", viewport.size.toFloat32Array)
-            .uniform("gridSize", Float32Array.new([_simulation.gridSize, _simulation.gridSize]))
             .uniform("canvasSize", Float32Array.new([_canvas.width, _canvas.height]))
+            .uniform("gridSize", Float32Array.new([_simulation.gridSize, _simulation.gridSize]))
             .draw(_igloo.gl.TRIANGLE_STRIP, 4)
     }
 
@@ -83,6 +100,12 @@ class Controller {
         })
 
         _canvas.addEventListener("mouseup", (e HTMLMouseEvent) => {
+            for behavior in _mouseBehaviors {
+                behavior.up(e.offsetX, e.offsetY)
+            }
+        })
+
+        _canvas.addEventListener("mouseleave", (e HTMLMouseEvent) => {
             for behavior in _mouseBehaviors {
                 behavior.up(e.offsetX, e.offsetY)
             }

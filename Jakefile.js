@@ -45,18 +45,17 @@ var sources = [
 desc('Build Skew -> Javascript for debug');
 task('release', [buildDir], function () {
   var outputFile = path.join(buildDir, 'compiled.js');
-  compileSkewSources(
-      sources,
-      outputFile,
-      ' --release',
-      complete
-  );
+  compileSkewSources(sources, outputFile, ' --release', function () {
+    jake.cpR('src/glsl', buildDir, complete);
+  });
 });
 
 desc('Build Skew -> Javascript for debug');
 task('debug', [buildDir], function () {
   var outputFile = path.join(buildDir, 'compiled.js');
-  compileSkewSources(sources, outputFile, null, complete);
+  compileSkewSources(sources, outputFile, null, function () {
+      jake.cpR('src/glsl', buildDir, complete);
+  });
 });
 
 desc('Watch skew files and compile when they change');
