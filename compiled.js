@@ -11,10 +11,15 @@
 
   function main() {
     window.onload = function() {
-      var canvas = document.getElementById('gol-canvas');
+      var canvas = document.getElementById('game-of-life-canvas');
       var controller = new Controller(canvas);
       controller.draw();
       controller.start();
+
+      if (!RELEASE) {
+        // Expose this for in-browser debugging
+        window.controller = controller;
+      }
     };
   }
 
@@ -23,32 +28,52 @@
   }
 
   function Controller(canvas) {
-    this._canvas = null;
-    this._simulation = null;
-    this._igloo = null;
-    this._program = null;
-    this._quadBuffer = null;
-    this._mouseBehaviors = null;
-    this.viewport = null;
-    this._canvas = canvas;
-    this.viewport = new Rect(0, 0, 512, 512);
-    assert(this._canvas.width == this._canvas.height);
-    this._igloo = new Igloo(canvas);
+    var self = this;
+    self._canvas = null;
+    self._simulation = null;
+    self._igloo = null;
+    self._program = null;
+    self._quadBuffer = null;
+    self._mouseBehaviors = null;
+    self.viewport = null;
+    self._canvas = canvas;
+    self.viewport = new Rect(0, 0, 700, 700);
+    self._igloo = new Igloo(canvas);
 
-    if (this._igloo.gl == null) {
+    if (self._igloo.gl == null) {
       document.getElementById('app-container').style.display = 'none';
       document.getElementById('webgl-error').style.display = null;
 
       throw new Error('Failed to initialize Igloo');
     }
 
-    this._simulation = new Simulation(this._igloo, Controller.gridSize);
-    this._igloo.gl.disable(this._igloo.gl.DEPTH_TEST);
-    this._program = this._igloo.program('glsl/quad.vert', 'glsl/draw_grid.frag');
-    this._quadBuffer = this._igloo.array(Igloo.QUAD2);
-    this._mouseBehaviors = [new DragMouseBehavior(this), new ZoomMouseBehavior(this)];
-    this._bindMouseBehaviors();
+    self._simulation = new Simulation(self._igloo, Controller.gridSize);
+    self._igloo.gl.disable(self._igloo.gl.DEPTH_TEST);
+    self._program = self._igloo.program('glsl/quad.vert', 'glsl/draw_grid.frag');
+    self._quadBuffer = self._igloo.array(Igloo.QUAD2);
+    self._mouseBehaviors = [new DragMouseBehavior(self), new ZoomMouseBehavior(self)];
+    self._bindMouseBehaviors();
+    self._onResize();
+    in_HTMLWindow.addEventListener1(window, 'resize', function() {
+      self._onResize();
+    });
   }
+
+  Controller.prototype._onResize = function() {
+    var canvasContainer = document.getElementById('canvas-container');
+    this._canvas.width = canvasContainer.offsetWidth;
+    this._canvas.height = canvasContainer.offsetHeight;
+
+    // Constrain the viewport size to the same aspect ratio
+    // as the canvas
+    this.viewport.size.constrainToAspectRatio(new Vector(this._canvas.width, this._canvas.height), Axis.Y);
+
+    if (!RELEASE) {
+      var viewportAspectRatio = this.viewport.size.y / this.viewport.size.x;
+      var canvasAspectRatio = this._canvas.height / this._canvas.width;
+      assert(viewportAspectRatio - canvasAspectRatio < 0.001);
+    }
+  };
 
   Controller.prototype.canvas = function() {
     return this._canvas;
@@ -61,7 +86,7 @@
     this._igloo.defaultFramebuffer.bind();
     this._simulation.gridTexture().bind(0);
     this._igloo.gl.viewport(0, 0, this._canvas.width, this._canvas.height);
-    this._program.use().attrib('quad', this._quadBuffer, 2).uniformi('cellGridTexture', 0).uniform('viewportOffset', this.viewport.origin.toFloat32Array()).uniform('viewportSize', this.viewport.size.toFloat32Array()).uniform('gridSize', new Float32Array([this._simulation.gridSize, this._simulation.gridSize])).uniform('canvasSize', new Float32Array([this._canvas.width, this._canvas.height])).draw(this._igloo.gl.TRIANGLE_STRIP, 4);
+    this._program.use().attrib('quad', this._quadBuffer, 2).uniformi('cellGridTexture', 0).uniform('viewportOffset', this.viewport.origin.toFloat32Array()).uniform('viewportSize', this.viewport.size.toFloat32Array()).uniform('canvasSize', new Float32Array([this._canvas.width, this._canvas.height])).uniform('gridSize', new Float32Array([this._simulation.gridSize, this._simulation.gridSize])).draw(this._igloo.gl.TRIANGLE_STRIP, 4);
   };
 
   Controller.prototype.start = function() {
@@ -87,6 +112,12 @@
       }
     });
     in_HTMLElement.addEventListener4(self._canvas, 'mouseup', function(e) {
+      for (var i = 0, list = self._mouseBehaviors, count = in_List.count(list); i < count; i = i + 1 | 0) {
+        var behavior = in_List.get(list, i);
+        behavior.up(e.offsetX, e.offsetY);
+      }
+    });
+    in_HTMLElement.addEventListener4(self._canvas, 'mouseleave', function(e) {
       for (var i = 0, list = self._mouseBehaviors, count = in_List.count(list); i < count; i = i + 1 | 0) {
         var behavior = in_List.get(list, i);
         behavior.up(e.offsetX, e.offsetY);
@@ -144,7 +175,7 @@
 
   DragMouseBehavior.prototype._gridSpaceFromCanvasSpace = function(x, y) {
     if (this._onDownViewport == null) {
-      throw new Error('TODO(ryan)');
+      throw new Error("Shouldn't call _gridSpaceFromCanvasSpace unless _onDownViewport is set");
     }
 
     var canvasSize = new Vector(this._controller.canvas().width, this._controller.canvas().height);
@@ -154,7 +185,7 @@
 
   DragMouseBehavior.prototype._delta = function(newLocation) {
     if (this._onDownGridSpace == null) {
-      throw new Error('TODO(ryan)');
+      throw new Error("Shouldn't call _delta unless _onDownGridSpace is set");
     }
 
     var delta = this._onDownGridSpace.value.subtract(newLocation);
@@ -183,6 +214,8 @@
     if (newSize.x > ZoomMouseBehavior.minSize && newSize.y > ZoomMouseBehavior.minSize && newSize.x < ZoomMouseBehavior.maxSize && newSize.y < ZoomMouseBehavior.maxSize) {
       this._controller.viewport.origin = newOffset;
       this._controller.viewport.size = newSize;
+      var canvasSize = new Vector(this._controller.canvas().width, this._controller.canvas().height);
+      this._controller.viewport.size.constrainToAspectRatio(canvasSize, Axis.Y);
     }
   };
 
@@ -269,6 +302,11 @@
     this._destTexture = tmp;
   };
 
+  var Axis = {
+    X: 0,
+    Y: 1
+  };
+
   function Vector(x, y) {
     this.x = 0;
     this.y = 0;
@@ -304,6 +342,18 @@
     return new Float32Array([this.x, this.y]);
   };
 
+  Vector.prototype.constrainToAspectRatio = function(other, freeAxis) {
+    // TODO(ryan): change this to a switch statement once the skew
+    // compiler is fixed
+    if (freeAxis == Axis.X) {
+      this.x = this.y * other.x / other.y;
+    }
+
+    else {
+      this.y = this.x * other.y / other.x;
+    }
+  };
+
   Vector.new1 = function() {
     return new Vector(0, 0);
   };
@@ -335,6 +385,13 @@
     HTML.on(self, type, listener);
   };
 
+  var in_HTMLWindow = {};
+
+  in_HTMLWindow.addEventListener1 = function(self, type, listener) {
+    HTML.on(self, type, listener);
+  };
+
+  var RELEASE = false;
   Controller.gridSize = 1024;
   ZoomMouseBehavior.minSize = 15;
   ZoomMouseBehavior.maxSize = 2500;
