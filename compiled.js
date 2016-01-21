@@ -129,6 +129,41 @@
         behavior.scroll(e.deltaY);
       }
     });
+
+    // TODO(ryan): move this to a mouse behavior, zoom to center
+    var scaling = false;
+    var lastDist = -1;
+    var dist = function(e) {
+      return Math.sqrt(__imul(in_List.get(in_HTMLTouchEvent.touches(e), 0).clientX - in_List.get(in_HTMLTouchEvent.touches(e), 1).clientX | 0, in_List.get(in_HTMLTouchEvent.touches(e), 0).clientX - in_List.get(in_HTMLTouchEvent.touches(e), 1).clientX | 0) + __imul(in_List.get(in_HTMLTouchEvent.touches(e), 0).clientY - in_List.get(in_HTMLTouchEvent.touches(e), 1).clientY | 0, in_List.get(in_HTMLTouchEvent.touches(e), 0).clientY - in_List.get(in_HTMLTouchEvent.touches(e), 1).clientY | 0) | 0);
+    };
+    var onZoom = function(e) {
+      var newDist = dist(e);
+      var delta = lastDist - newDist;
+
+      for (var i = 0, list = self._mouseBehaviors, count = in_List.count(list); i < count; i = i + 1 | 0) {
+        var behavior = in_List.get(list, i);
+        behavior.scroll(delta);
+      }
+
+      lastDist = newDist;
+    };
+    in_HTMLElement.addEventListener5(self._canvas, 'touchstart', function(e) {
+      if (in_List.count(in_HTMLTouchEvent.touches(e)) == 2) {
+        scaling = true;
+        lastDist = dist(e);
+      }
+    });
+    in_HTMLElement.addEventListener5(self._canvas, 'touchmove', function(e) {
+      if (scaling) {
+        onZoom(e);
+      }
+    });
+    in_HTMLElement.addEventListener5(self._canvas, 'touchend', function(e) {
+      if (scaling) {
+        onZoom(e);
+        scaling = false;
+      }
+    });
   };
 
   function DragMouseBehavior(_controller) {
@@ -360,6 +395,16 @@
 
   var HTML = {};
 
+  HTML.asList = function(listLike) {
+    var list = [];
+
+    for (var i = 0, count = listLike.length; i < count; i = i + 1 | 0) {
+      list.push(listLike[i]);
+    }
+
+    return list;
+  };
+
   HTML.on = function(target, type, listener) {
     target.addEventListener(type, listener);
   };
@@ -375,9 +420,19 @@
     return self.length;
   };
 
+  var in_HTMLTouchEvent = {};
+
+  in_HTMLTouchEvent.touches = function(self) {
+    return HTML.asList(self.touches);
+  };
+
   var in_HTMLElement = {};
 
   in_HTMLElement.addEventListener4 = function(self, type, listener) {
+    HTML.on(self, type, listener);
+  };
+
+  in_HTMLElement.addEventListener5 = function(self, type, listener) {
     HTML.on(self, type, listener);
   };
 
