@@ -20,6 +20,10 @@
         // Expose this for in-browser debugging
         window.controller = controller;
       }
+
+      if (isTouchDevice()) {
+        document.getElementById('instructions').innerHTML = 'Pinch and drag to move around.';
+      }
     };
   }
 
@@ -35,6 +39,7 @@
     self._program = null;
     self._quadBuffer = null;
     self._mouseBehaviors = null;
+    self._touchHandlers = null;
     self.viewport = null;
     self._canvas = canvas;
     self.viewport = new Rect(0, 0, 700, 700);
@@ -52,6 +57,7 @@
     self._program = self._igloo.program('glsl/quad.vert', 'glsl/draw_grid.frag');
     self._quadBuffer = self._igloo.array(Igloo.QUAD2);
     self._mouseBehaviors = [new DragMouseBehavior(self), new ZoomMouseBehavior(self)];
+    self._touchHandlers = [new PanTouchHandler(self), new ZoomTouchHandler(self)];
     self._bindMouseBehaviors();
     self._onResize();
     in_HTMLWindow.addEventListener1(window, 'resize', function() {
@@ -129,39 +135,22 @@
         behavior.scroll(e.deltaY);
       }
     });
-
-    // TODO(ryan): move this to a mouse behavior, zoom to center
-    var scaling = false;
-    var lastDist = -1;
-    var dist = function(e) {
-      return Math.sqrt(__imul(in_List.get(in_HTMLTouchEvent.touches(e), 0).clientX - in_List.get(in_HTMLTouchEvent.touches(e), 1).clientX | 0, in_List.get(in_HTMLTouchEvent.touches(e), 0).clientX - in_List.get(in_HTMLTouchEvent.touches(e), 1).clientX | 0) + __imul(in_List.get(in_HTMLTouchEvent.touches(e), 0).clientY - in_List.get(in_HTMLTouchEvent.touches(e), 1).clientY | 0, in_List.get(in_HTMLTouchEvent.touches(e), 0).clientY - in_List.get(in_HTMLTouchEvent.touches(e), 1).clientY | 0) | 0);
-    };
-    var onZoom = function(e) {
-      var newDist = dist(e);
-      var delta = lastDist - newDist;
-
-      for (var i = 0, list = self._mouseBehaviors, count = in_List.count(list); i < count; i = i + 1 | 0) {
-        var behavior = in_List.get(list, i);
-        behavior.scroll(delta);
-      }
-
-      lastDist = newDist;
-    };
     in_HTMLElement.addEventListener5(self._canvas, 'touchstart', function(e) {
-      if (in_List.count(in_HTMLTouchEvent.touches(e)) == 2) {
-        scaling = true;
-        lastDist = dist(e);
+      for (var i = 0, list = self._touchHandlers, count = in_List.count(list); i < count; i = i + 1 | 0) {
+        var touchHandler = in_List.get(list, i);
+        touchHandler.touchStart(e);
       }
     });
     in_HTMLElement.addEventListener5(self._canvas, 'touchmove', function(e) {
-      if (scaling) {
-        onZoom(e);
+      for (var i = 0, list = self._touchHandlers, count = in_List.count(list); i < count; i = i + 1 | 0) {
+        var touchHandler = in_List.get(list, i);
+        touchHandler.touchMove(e);
       }
     });
     in_HTMLElement.addEventListener5(self._canvas, 'touchend', function(e) {
-      if (scaling) {
-        onZoom(e);
-        scaling = false;
+      for (var i = 0, list = self._touchHandlers, count = in_List.count(list); i < count; i = i + 1 | 0) {
+        var touchHandler = in_List.get(list, i);
+        touchHandler.touchEnd(e);
       }
     });
   };
@@ -337,6 +326,77 @@
     this._destTexture = tmp;
   };
 
+  function PanTouchHandler(_controller) {
+    this._controller = _controller;
+    this._panning = false;
+    this._dragBehavior = null;
+  }
+
+  PanTouchHandler.prototype.touchStart = function(e) {
+    if (in_List.count(in_HTMLTouchEvent.touches(e)) == 1) {
+      this._panning = true;
+      this._dragBehavior = new DragMouseBehavior(this._controller);
+      this._dragBehavior.down(in_List.get(in_HTMLTouchEvent.touches(e), 0).clientX, in_List.get(in_HTMLTouchEvent.touches(e), 0).clientY);
+    }
+
+    in_HTMLEvent.preventDefault(e);
+  };
+
+  PanTouchHandler.prototype.touchMove = function(e) {
+    if (this._panning && in_List.count(in_HTMLTouchEvent.touches(e)) == 1) {
+      this._dragBehavior.move(in_List.get(in_HTMLTouchEvent.touches(e), 0).clientX, in_List.get(in_HTMLTouchEvent.touches(e), 0).clientY);
+    }
+
+    in_HTMLEvent.preventDefault(e);
+  };
+
+  PanTouchHandler.prototype.touchEnd = function(e) {
+    if (this._panning && in_List.count(in_HTMLTouchEvent.touches(e)) == 1) {
+      this._dragBehavior.up(in_List.get(in_HTMLTouchEvent.touches(e), 0).clientX, in_List.get(in_HTMLTouchEvent.touches(e), 0).clientY);
+    }
+
+    in_HTMLEvent.preventDefault(e);
+  };
+
+  function ZoomTouchHandler(_controller) {
+    this._controller = _controller;
+    this._scaling = false;
+    this._lastDist = -1;
+    this._zoomBehavior = null;
+  }
+
+  ZoomTouchHandler.prototype.touchStart = function(e) {
+    if (in_List.count(in_HTMLTouchEvent.touches(e)) == 2) {
+      this._scaling = true;
+      this._lastDist = this._dist(e);
+      this._zoomBehavior = new ZoomMouseBehavior(this._controller);
+    }
+  };
+
+  ZoomTouchHandler.prototype.touchMove = function(e) {
+    if (this._scaling && in_List.count(in_HTMLTouchEvent.touches(e)) == 2) {
+      this._onZoom(e);
+    }
+  };
+
+  ZoomTouchHandler.prototype.touchEnd = function(e) {
+    if (this._scaling && in_List.count(in_HTMLTouchEvent.touches(e)) == 2) {
+      this._onZoom(e);
+      this._scaling = false;
+    }
+  };
+
+  ZoomTouchHandler.prototype._dist = function(e) {
+    return Math.sqrt(__imul(in_List.get(in_HTMLTouchEvent.touches(e), 0).clientX - in_List.get(in_HTMLTouchEvent.touches(e), 1).clientX | 0, in_List.get(in_HTMLTouchEvent.touches(e), 0).clientX - in_List.get(in_HTMLTouchEvent.touches(e), 1).clientX | 0) + __imul(in_List.get(in_HTMLTouchEvent.touches(e), 0).clientY - in_List.get(in_HTMLTouchEvent.touches(e), 1).clientY | 0, in_List.get(in_HTMLTouchEvent.touches(e), 0).clientY - in_List.get(in_HTMLTouchEvent.touches(e), 1).clientY | 0) | 0);
+  };
+
+  ZoomTouchHandler.prototype._onZoom = function(e) {
+    var newDist = this._dist(e);
+    var delta = this._lastDist - newDist;
+    this._zoomBehavior.scroll(delta);
+    this._lastDist = newDist;
+  };
+
   var Axis = {
     X: 0,
     Y: 1
@@ -409,6 +469,10 @@
     target.addEventListener(type, listener);
   };
 
+  HTML.preventDefault = function(event) {
+    event.preventDefault();
+  };
+
   var in_List = {};
 
   in_List.get = function(self, index) {
@@ -418,6 +482,12 @@
 
   in_List.count = function(self) {
     return self.length;
+  };
+
+  var in_HTMLEvent = {};
+
+  in_HTMLEvent.preventDefault = function(self) {
+    HTML.preventDefault(self);
   };
 
   var in_HTMLTouchEvent = {};
