@@ -12,6 +12,7 @@ class Controller {
     var _quadBuffer Igloo.Buffer
 
     var _mouseBehaviors List<MouseBehavior>
+    var _touchHandlers List<TouchHandler>
 
     # viewport in grid-space
     var viewport Rect
@@ -36,6 +37,12 @@ class Controller {
             DragMouseBehavior.new(self),
             ZoomMouseBehavior.new(self)
          ]
+
+         _touchHandlers = [
+             PanTouchHandler.new(self),
+             ZoomTouchHandler.new(self)
+         ]
+
         _bindMouseBehaviors
         _onResize
         window.addEventListener("resize", () => { _onResize })
@@ -117,42 +124,21 @@ class Controller {
             }
         })
 
-        # TODO(ryan): move this to a mouse behavior, zoom to center
-        var scaling = false
-        var lastDist = -1.0
-        var dist = (e HTMLTouchEvent) double => {
-            return Math.sqrt(
-                (e.touches[0].clientX - e.touches[1].clientX) * (e.touches[0].clientX - e.touches[1].clientX) +
-                (e.touches[0].clientY - e.touches[1].clientY) * (e.touches[0].clientY - e.touches[1].clientY)
-            )
-        }
-
-        var onZoom = (e HTMLTouchEvent) => {
-                const newDist = dist(e)
-                const delta = lastDist - newDist
-                for behavior in _mouseBehaviors {
-                    behavior.scroll(delta)
-                }
-                lastDist = newDist
-        }
-
         _canvas.addEventListener("touchstart", (e HTMLTouchEvent) => {
-            if e.touches.count == 2 {
-                scaling = true
-                lastDist = dist(e)
+            for touchHandler in _touchHandlers {
+                touchHandler.touchStart(e)
             }
         })
 
         _canvas.addEventListener("touchmove", (e HTMLTouchEvent) => {
-            if scaling {
-                onZoom(e)
+            for touchHandler in _touchHandlers {
+                touchHandler.touchMove(e)
             }
         })
 
         _canvas.addEventListener("touchend", (e HTMLTouchEvent) => {
-            if scaling {
-                onZoom(e)
-                scaling = false
+            for touchHandler in _touchHandlers {
+               touchHandler.touchEnd(e)
             }
         })
     }

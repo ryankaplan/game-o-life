@@ -3,6 +3,9 @@ namespace console {
     const log dynamic
 }
 
+@import
+def isTouchDevice bool
+
 namespace Controller {
     const cellSize = 1
 }
@@ -22,6 +25,10 @@ def main {
         if !RELEASE {
             # Expose this for in-browser debugging
             (window as dynamic).controller = controller
+        }
+
+        if isTouchDevice {
+            document.getElementById("instructions").innerHTML = "Pinch and drag to move around."
         }
     }
 }

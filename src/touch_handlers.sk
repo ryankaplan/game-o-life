@@ -1,0 +1,85 @@
+interface TouchHandler {
+    def touchStart(e HTMLTouchEvent)
+    def touchMove(e HTMLTouchEvent)
+    def touchEnd(e HTMLTouchEvent)
+}
+
+############################################################################
+
+class PanTouchHandler :: TouchHandler {
+    var _controller Controller
+    var _panning = false
+    var _dragBehavior DragMouseBehavior = null
+
+    def touchStart(e HTMLTouchEvent) {
+        if e.touches.count == 1 {
+            _panning = true
+            _dragBehavior = DragMouseBehavior.new(_controller)
+            _dragBehavior.down(e.touches[0].clientX, e.touches[0].clientY)
+        }
+        e.preventDefault
+    }
+
+    def touchMove(e HTMLTouchEvent) {
+        if _panning && e.touches.count == 1 {
+            _dragBehavior.move(e.touches[0].clientX, e.touches[0].clientY)
+        }
+        e.preventDefault
+    }
+
+    def touchEnd(e HTMLTouchEvent) {
+        if _panning && e.touches.count == 1 {
+            _dragBehavior.up(e.touches[0].clientX, e.touches[0].clientY)
+        }
+        e.preventDefault
+    }
+}
+
+############################################################################
+
+
+# TODO(ryan): Zooming should be a reversible action. Store viewport state
+# on touchStart and continuously update _controller.viewport
+# _controller.viewport * currentGestureZoomDelta
+
+class ZoomTouchHandler :: TouchHandler {
+    var _controller Controller
+    var _scaling = false
+    var _lastDist = -1.0
+    var _zoomBehavior ZoomMouseBehavior = null
+
+    def touchStart(e HTMLTouchEvent) {
+        if e.touches.count == 2 {
+            _scaling = true
+            _lastDist = _dist(e)
+            _zoomBehavior = ZoomMouseBehavior.new(_controller)
+        }
+    }
+
+    def touchMove(e HTMLTouchEvent) {
+        if _scaling && e.touches.count == 2 {
+            _onZoom(e)
+        }
+    }
+
+    def touchEnd(e HTMLTouchEvent) {
+        if _scaling && e.touches.count == 2 {
+            _onZoom(e)
+            _scaling = false
+        }
+    }
+
+    def _dist(e HTMLTouchEvent) double {
+        return Math.sqrt(
+            (e.touches[0].clientX - e.touches[1].clientX) * (e.touches[0].clientX - e.touches[1].clientX) +
+            (e.touches[0].clientY - e.touches[1].clientY) * (e.touches[0].clientY - e.touches[1].clientY)
+        )
+    }
+
+    def _onZoom(e HTMLTouchEvent) {
+        const newDist = _dist(e)
+        const delta = _lastDist - newDist
+        _zoomBehavior.scroll(delta)
+        _lastDist = newDist
+    }
+}
