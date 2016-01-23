@@ -28,3 +28,13 @@ class Rect {
         return origin + uv * size
     }
 }
+
+namespace Rect {
+    def withOriginAndSize(origin Vector, size Vector) Rect {
+        return Rect.new(origin.x, origin.y, size.x, size.y)
+    }
+
+    def withCenterAndSize(center Vector, size Vector) Rect {
+        return Rect.withOriginAndSize(center - size / 2, size)
+    }
+}

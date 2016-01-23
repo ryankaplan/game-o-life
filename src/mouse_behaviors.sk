@@ -2,7 +2,20 @@ interface MouseBehavior {
     def down(x int, y int)
     def move(x int, y int)
     def up(x int, y int)
-    def scroll(delta double)
+    def scroll(x int, y int, delta double)
+}
+
+def canvasSpaceToGridSpace(canvasPosition Vector, canvasSize Vector, viewport Rect) Vector {
+    const canvasSpaceUv = canvasPosition / canvasSize
+    return viewport.pointAtUvCoordinate(canvasSpaceUv)
+}
+
+def canvasSpaceToGridSpace(canvasPosition Vector, controller Controller) Vector {
+    return canvasSpaceToGridSpace(
+        canvasPosition,
+        Vector.new(controller.canvas.width, controller.canvas.height),
+        controller.viewport
+    )
 }
 
 ############################################################################
@@ -15,22 +28,21 @@ class DragMouseBehavior :: MouseBehavior {
 
     def down(x int, y int) {
         _onDownViewport = Box<Rect>.new(_controller.viewport.clone)
-        _onDownGridSpace = Box<Vector>.new(_gridSpaceFromCanvasSpace(x, y))
+        _onDownGridSpace = Box<Vector>.new(_canvasSpaceToGridSpace(x, y))
     }
 
     def move(x int, y int) {
         if _onDownGridSpace == null {
             return
         }
-
-        const onMoveGridSpace = _gridSpaceFromCanvasSpace(x, y)
+        const onMoveGridSpace = _canvasSpaceToGridSpace(x, y)
         const delta = _delta(onMoveGridSpace)
         _controller.viewport.origin = _onDownViewport.value.origin + delta
     }
 
     def up(x int, y int) {
         if _onDownGridSpace != null {
-            const onUpGridSpace = _gridSpaceFromCanvasSpace(x, y)
+            const onUpGridSpace = _canvasSpaceToGridSpace(x, y)
             const delta = _delta(onUpGridSpace)
             if delta.length > 10 {
                 _controller.viewport.origin = _onDownViewport.value.origin + delta
@@ -40,21 +52,23 @@ class DragMouseBehavior :: MouseBehavior {
         _reset
     }
 
-    def scroll(delta double) {}
+    def scroll(x int, y int, delta double) {}
 
     def _reset {
         _onDownGridSpace = null
         _onDownViewport = null
     }
 
-    def _gridSpaceFromCanvasSpace(x int, y int) Vector {
+    def _canvasSpaceToGridSpace(x int, y int) Vector {
         if _onDownViewport == null {
             throw Error.new("Shouldn't call _gridSpaceFromCanvasSpace unless _onDownViewport is set")
         }
 
-        const canvasSize = Vector.new(_controller.canvas.width, _controller.canvas.height)
-        const canvasSpaceUv = Vector.new(x, y) / canvasSize
-        return _onDownViewport.value.pointAtUvCoordinate(canvasSpaceUv)
+        return canvasSpaceToGridSpace(
+            Vector.new(x, y),
+            Vector.new(_controller.canvas.width, _controller.canvas.height),
+            _onDownViewport.value
+        )
     }
 
     def _delta(newLocation Vector) Vector {
@@ -82,13 +96,44 @@ class ZoomMouseBehavior :: MouseBehavior {
     def move(x int, y int) {}
     def up(x int, y int) {}
 
-    def scroll(delta_ double) {
+    def scroll(x int, y int, delta_ double) {
+        # HTML page co-ordinates and WebGL co-ordinates are flipped
+        y = _controller.canvasSize.y as int - y
+
+        const gridSpaceCenter = canvasSpaceToGridSpace(
+            Vector.new(x, y),
+            _controller.canvasSize,
+            _controller.viewport
+        )
+
+        # The cursor is currently over gridSpaceCenter. The goal here
+        # is to keep the cursor over gridSpaceCenter once we're zoomed
+        # in.
+
+        # First, let's figure out the size of the new viewport.
         const delta = Vector.new(delta_, delta_)
-        const newOffset = _controller.viewport.origin - delta / 2
         const newSize = _controller.viewport.size + delta
 
+        # Ok, easy enough. Now we want to figure out the origin of
+        # the new viewport such that the cursor points to the same
+        # location on the grid. How do we do that?
+        #
+        # Well, the cursor is at (x, y) in canvas space. And it will
+        # still be at (x, y) in canvas space when we're done zooming.
+        # We can use this. If you unbundle the logic of the
+        # canvasSpaceToGridSpace above, you'll see that it breaks down
+        # to the following formula:
+        #
+        # gridSpacePosition = viewport.origin + (canvasSpacePosition / canvasSize) * viewport.size
+        #
+        # Re-working it to put viewport.origin on the left, we get
+        #
+        # viewport.origin = gridSpacePosition - (canvasSpacePosition / canvasSize) * viewport.size
+        #
+        const newOrigin = gridSpaceCenter - (Vector.new(x, y) / _controller.canvasSize) * newSize
+
         if newSize.x > minSize && newSize.y > minSize && newSize.x < maxSize && newSize.y < maxSize {
-            _controller.viewport.origin = newOffset
+            _controller.viewport.origin = newOrigin
             _controller.viewport.size = newSize
 
             const canvasSize = Vector.new(_controller.canvas.width, _controller.canvas.height)

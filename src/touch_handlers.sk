@@ -70,16 +70,26 @@ class ZoomTouchHandler :: TouchHandler {
     }
 
     def _dist(e HTMLTouchEvent) double {
-        return Math.sqrt(
-            (e.touches[0].clientX - e.touches[1].clientX) * (e.touches[0].clientX - e.touches[1].clientX) +
-            (e.touches[0].clientY - e.touches[1].clientY) * (e.touches[0].clientY - e.touches[1].clientY)
-        )
+        const aTouch = e.touches[0]
+        const bTouch = e.touches[1]
+        const a = Vector.new(aTouch.clientX, aTouch.clientY)
+        const b = Vector.new(bTouch.clientX, bTouch.clientY)
+        return a.distanceTo(b)
+    }
+
+    def _center(e HTMLTouchEvent) Vector {
+        const aTouch = e.touches[0]
+        const bTouch = e.touches[1]
+        const a = Vector.new(aTouch.clientX, aTouch.clientY)
+        const b = Vector.new(bTouch.clientX, bTouch.clientY)
+        return (a + b) / 2.0
     }
 
     def _onZoom(e HTMLTouchEvent) {
+        const center = _center(e)
         const newDist = _dist(e)
         const delta = _lastDist - newDist
-        _zoomBehavior.scroll(delta)
+        _zoomBehavior.scroll(center.x as int, center.y as int, delta)
         _lastDist = newDist
     }
 }
