@@ -27,6 +27,11 @@
     };
   }
 
+  function canvasSpaceToGridSpace1(canvasPosition, canvasSize, viewport) {
+    var canvasSpaceUv = canvasPosition.divide(canvasSize);
+    return viewport.pointAtUvCoordinate(canvasSpaceUv);
+  }
+
   function Box(value) {
     this.value = value;
   }
@@ -85,6 +90,10 @@
     return this._canvas;
   };
 
+  Controller.prototype.canvasSize = function() {
+    return new Vector(this._canvas.width, this._canvas.height);
+  };
+
   Controller.prototype.draw = function() {
     // As per the comment at the top of 'step', the current grid
     // state is stored in the 'front' texture. So we bind that to
@@ -132,7 +141,7 @@
     in_HTMLElement.addEventListener6(self._canvas, 'wheel', function(e) {
       for (var i = 0, list = self._mouseBehaviors, count = in_List.count(list); i < count; i = i + 1 | 0) {
         var behavior = in_List.get(list, i);
-        behavior.scroll(e.deltaY);
+        behavior.scroll(e.offsetX, e.offsetY, e.deltaY);
       }
     });
     in_HTMLElement.addEventListener5(self._canvas, 'touchstart', function(e) {
@@ -163,7 +172,7 @@
 
   DragMouseBehavior.prototype.down = function(x, y) {
     this._onDownViewport = new Box(this._controller.viewport.clone());
-    this._onDownGridSpace = new Box(this._gridSpaceFromCanvasSpace(x, y));
+    this._onDownGridSpace = new Box(this._canvasSpaceToGridSpace(x, y));
   };
 
   DragMouseBehavior.prototype.move = function(x, y) {
@@ -171,14 +180,14 @@
       return;
     }
 
-    var onMoveGridSpace = this._gridSpaceFromCanvasSpace(x, y);
+    var onMoveGridSpace = this._canvasSpaceToGridSpace(x, y);
     var delta = this._delta(onMoveGridSpace);
     this._controller.viewport.origin = this._onDownViewport.value.origin.add(delta);
   };
 
   DragMouseBehavior.prototype.up = function(x, y) {
     if (this._onDownGridSpace != null) {
-      var onUpGridSpace = this._gridSpaceFromCanvasSpace(x, y);
+      var onUpGridSpace = this._canvasSpaceToGridSpace(x, y);
       var delta = this._delta(onUpGridSpace);
 
       if (delta.length() > 10) {
@@ -189,7 +198,7 @@
     this._reset();
   };
 
-  DragMouseBehavior.prototype.scroll = function(delta) {
+  DragMouseBehavior.prototype.scroll = function(x, y, delta) {
   };
 
   DragMouseBehavior.prototype._reset = function() {
@@ -197,14 +206,12 @@
     this._onDownViewport = null;
   };
 
-  DragMouseBehavior.prototype._gridSpaceFromCanvasSpace = function(x, y) {
+  DragMouseBehavior.prototype._canvasSpaceToGridSpace = function(x, y) {
     if (this._onDownViewport == null) {
       throw new Error("Shouldn't call _gridSpaceFromCanvasSpace unless _onDownViewport is set");
     }
 
-    var canvasSize = new Vector(this._controller.canvas().width, this._controller.canvas().height);
-    var canvasSpaceUv = new Vector(x, y).divide(canvasSize);
-    return this._onDownViewport.value.pointAtUvCoordinate(canvasSpaceUv);
+    return canvasSpaceToGridSpace1(new Vector(x, y), new Vector(this._controller.canvas().width, this._controller.canvas().height), this._onDownViewport.value);
   };
 
   DragMouseBehavior.prototype._delta = function(newLocation) {
@@ -230,13 +237,35 @@
   ZoomMouseBehavior.prototype.up = function(x, y) {
   };
 
-  ZoomMouseBehavior.prototype.scroll = function(delta_) {
+  ZoomMouseBehavior.prototype.scroll = function(x, y, delta_) {
+    // HTML page co-ordinates and WebGL co-ordinates are flipped
+    y = (this._controller.canvasSize().y | 0) - y | 0;
+    var gridSpaceCenter = canvasSpaceToGridSpace1(new Vector(x, y), this._controller.canvasSize(), this._controller.viewport);
+
+    // First, let's figure out the size of the new viewport.
     var delta = new Vector(delta_, delta_);
-    var newOffset = this._controller.viewport.origin.subtract(delta.divide1(2));
     var newSize = this._controller.viewport.size.add(delta);
 
+    // Ok, easy enough. Now we want to figure out the origin of
+    // the new viewport such that the cursor points to the same
+    // location on the grid. How do we do that?
+    //
+    // Well, the cursor is at (x, y) in canvas space. And it will
+    // still be at (x, y) in canvas space when we're done zooming.
+    // We can use this. If you unbundle the logic of the
+    // canvasSpaceToGridSpace above, you'll see that it breaks down
+    // to the following formula:
+    //
+    // gridSpacePosition = viewport.origin + (canvasSpacePosition / canvasSize) * viewport.size
+    //
+    // Re-working it to put viewport.origin on the left, we get
+    //
+    // viewport.origin = gridSpacePosition - (canvasSpacePosition / canvasSize) * viewport.size
+    //
+    var newOrigin = gridSpaceCenter.subtract(new Vector(x, y).divide(this._controller.canvasSize()).multiply(newSize));
+
     if (newSize.x > ZoomMouseBehavior.minSize && newSize.y > ZoomMouseBehavior.minSize && newSize.x < ZoomMouseBehavior.maxSize && newSize.y < ZoomMouseBehavior.maxSize) {
-      this._controller.viewport.origin = newOffset;
+      this._controller.viewport.origin = newOrigin;
       this._controller.viewport.size = newSize;
       var canvasSize = new Vector(this._controller.canvas().width, this._controller.canvas().height);
       this._controller.viewport.size.constrainToAspectRatio(canvasSize, Axis.Y);
@@ -387,13 +416,26 @@
   };
 
   ZoomTouchHandler.prototype._dist = function(e) {
-    return Math.sqrt(__imul(in_List.get(in_HTMLTouchEvent.touches(e), 0).clientX - in_List.get(in_HTMLTouchEvent.touches(e), 1).clientX | 0, in_List.get(in_HTMLTouchEvent.touches(e), 0).clientX - in_List.get(in_HTMLTouchEvent.touches(e), 1).clientX | 0) + __imul(in_List.get(in_HTMLTouchEvent.touches(e), 0).clientY - in_List.get(in_HTMLTouchEvent.touches(e), 1).clientY | 0, in_List.get(in_HTMLTouchEvent.touches(e), 0).clientY - in_List.get(in_HTMLTouchEvent.touches(e), 1).clientY | 0) | 0);
+    var aTouch = in_List.get(in_HTMLTouchEvent.touches(e), 0);
+    var bTouch = in_List.get(in_HTMLTouchEvent.touches(e), 1);
+    var a = new Vector(aTouch.clientX, aTouch.clientY);
+    var b = new Vector(bTouch.clientX, bTouch.clientY);
+    return a.distanceTo(b);
+  };
+
+  ZoomTouchHandler.prototype._center = function(e) {
+    var aTouch = in_List.get(in_HTMLTouchEvent.touches(e), 0);
+    var bTouch = in_List.get(in_HTMLTouchEvent.touches(e), 1);
+    var a = new Vector(aTouch.clientX, aTouch.clientY);
+    var b = new Vector(bTouch.clientX, bTouch.clientY);
+    return a.add(b).divide1(2);
   };
 
   ZoomTouchHandler.prototype._onZoom = function(e) {
+    var center = this._center(e);
     var newDist = this._dist(e);
     var delta = this._lastDist - newDist;
-    this._zoomBehavior.scroll(delta);
+    this._zoomBehavior.scroll(center.x | 0, center.y | 0, delta);
     this._lastDist = newDist;
   };
 
@@ -429,8 +471,16 @@
     return new Vector(this.x / d, this.y / d);
   };
 
+  Vector.prototype.distanceTo = function(v) {
+    return Math.sqrt(this.dot(v));
+  };
+
   Vector.prototype.length = function() {
     return Math.sqrt(this.x * this.x + this.y * this.y);
+  };
+
+  Vector.prototype.dot = function(v) {
+    return this.x * v.x + this.y * v.y;
   };
 
   Vector.prototype.toFloat32Array = function() {
