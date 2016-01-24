@@ -1,6 +1,578 @@
-(function(){var Aa=Math.imul||function(a,b){return (a*(b>>>16)<<16)+a*(b&65535)|0};var o;function Ca(){window.onload=function(){var a=document.getElementById('game-of-life-canvas'),b=new Ba(a);E(b),_(b),isTouchDevice()&&(document.getElementById('instructions').innerHTML='Pinch and drag to move around.')}}function F(a,b,c){var e=L(a,b);return ga(c,e)}function D(b){var a=document.getElementById('canvas-container');b.a.width=a.offsetWidth,b.a.height=a.offsetHeight,N(b.i.b,new Ja(b.a.width,b.a.height),1)}function q(a){return new Ja(a.a.width,a.a.height)}function E(a){a.c.defaultFramebuffer.bind(),a.b.f.bind(0),a.c.gl.viewport(0,0,a.a.width,a.a.height),a.e.use().attrib('quad',a.f,2).uniformi('cellGridTexture',0).uniform('viewportOffset',M(a.i.a)).uniform('viewportSize',M(a.i.b)).uniform('canvasSize',new Float32Array([a.a.width,a.a.height])).uniform('gridSize',new Float32Array([a.b.b,a.b.b])).draw(5,4)}function _(a){setInterval(function(){ia(a.b),E(a)},60)}function $(j){h(j.a,'mousedown',function(a){for(var s=0,P=j.g,na=P.length;s<na;s=s+1|0){
-var b=P[s];b.A(a.offsetX,a.offsetY)}}),h(j.a,'mousemove',function(c){for(var t=0,Q=j.g,oa=Q.length;t<oa;t=t+1|0){var e=Q[t];e.B(c.offsetX,c.offsetY)}}),h(j.a,'mouseup',function(f){for(var u=0,R=j.g,pa=R.length;u<pa;u=u+1|0){var g=R[u];g.n(f.offsetX,f.offsetY)}}),h(j.a,'mouseleave',function(k){for(var v=0,S=j.g,qa=S.length;v<qa;v=v+1|0){var i=S[v];i.n(k.offsetX,k.offsetY)}}),h(j.a,'wheel',function(O){for(var w=0,T=j.g,ra=T.length;w<ra;w=w+1|0){var aa=T[w];aa.C(O.offsetX,O.offsetY,O.deltaY)}}),h(j.a,'touchstart',function(wa){for(var x=0,U=j.k,sa=U.length;x<sa;x=x+1|0){var ba=U[x];ba.X(wa)}}),h(j.a,'touchmove',function(xa){for(var y=0,V=j.k,ta=V.length;y<ta;y=y+1|0){var ca=V[y];ca.Y(xa)}}),h(j.a,'touchend',function(ya){for(var z=0,W=j.k,ua=W.length;z<ua;z=z+1|0){var da=W[z];da.Z(ya)}})}function ea(a){a.b=a.c=null}function r(c,a,b){if(!c.c)throw new Error("Shouldn't call _gridSpaceFromCanvasSpace unless _onDownViewport is set");return F(new Ja(a,b),new Ja(c.a.a.width,c.a.a.height),c.c.a)}function G(c,a){if(!c.b)throw new Error("Shouldn't call _delta unless _onDownGridSpace is set");
-var b=J(c.b.a,a);return b.b*=-1,b}function fa(a){return new Fa(a.a.a,a.a.b,a.b.a,a.b.b)}function ga(b,a){return l(b.a,K(a,b.b))}function ha(f,a){for(var b=new Uint8Array(f.b*f.b<<2),c=0,g=a.length;c<g;c=c+1|0){var e=c<<2;b[e]=a[c]^1?0:255,b[e+1|0]=a[c]^1?0:255,b[e+2|0]=a[c]^1?0:255,b[e+3|0]=255}f.f.subset(b,0,0,f.b,f.b)}function ia(b){b.k.attach(b.g),b.f.bind(0),b.a.gl.viewport(0,0,b.b,b.b),b.c.use().attrib('quad',b.e,2).uniformi('cellGridTexture',0).uniform('cellGridSize',new Float32Array([b.b,b.b])).draw(5,4);var a=b.f;b.f=b.g,b.g=a}function H(g,a){var b=d(a.touches)[0],c=d(a.touches)[1],e=new Ja(b.clientX,b.clientY),f=new Ja(c.clientX,c.clientY);return Math.sqrt(ma(e,f))}function ja(g,a){var b=d(a.touches)[0],c=d(a.touches)[1],e=new Ja(b.clientX,b.clientY),f=new Ja(c.clientX,c.clientY);return ka(l(e,f),2)}function I(f,a){var b=ja(f,a),c=H(f,a),e=f.c-c;f.e.C(b.a|0,b.b|0,e),f.c=c}function l(b,a){return new Ja(b.a+a.a,b.b+a.b)}function J(b,a){return new Ja(b.a-a.a,b.b-a.b)}function K(b,a){return new Ja(b.a*a.a,
-b.b*a.b)}function L(b,a){return new Ja(b.a/a.a,b.b/a.b)}function ka(b,a){return new Ja(b.a/a,b.b/a)}function la(a){return Math.sqrt(a.a*a.a+a.b*a.b)}function ma(b,a){return b.a*a.a+b.b*a.b}function M(a){return new Float32Array([a.a,a.b])}function N(c,a,b){b?c.b=c.a*a.b/a.a:c.a=c.b*a.a/a.b}function m(){return new Ja(0,0)}function d(a){for(var b=[],c=0,e=a.length;c<e;c=c+1|0)b.push(a[c]);return b}function h(a,b,c){a.addEventListener(b,c)}function p(a){a.preventDefault()}function za(a){this.a=a}function Ba(a){var b=this;if(b.b=b.c=null,b.e=b.f=null,b.g=b.k=null,b.i=null,b.a=a,b.i=new Fa(0,0,700,700),b.c=new Igloo(a),!b.c.gl){document.getElementById('app-container').style.display='none',document.getElementById('webgl-error').style.display=null;throw new Error('Failed to initialize Igloo')}b.b=new Ga(b.c,va),b.c.gl.disable(2929),b.e=b.c.program('glsl/quad.vert','glsl/draw_grid.frag'),b.f=b.c.array(Igloo.QUAD2),b.g=[new Da(b),new Ea(b)],b.k=[new Ha(b),new Ia(b)],$(b),D(b),h(window,'resize',function(){D(b)})}function Da(a){
-this.a=a,this.b=this.c=null}o=Da.prototype;o.A=function(a,b){this.c=new za(fa(this.a.i)),this.b=new za(r(this,a,b))};o.B=function(a,b){if(this.b){var c=r(this,a,b),e=G(this,c);this.a.i.a=l(this.c.a.a,e)}};o.n=function(a,b){if(this.b){var c=r(this,a,b),e=G(this,c);la(e)>10&&(this.a.i.a=l(this.c.a.a,e))}ea(this)};o.C=function(a,b,c){};function Ea(a){this.a=a}o=Ea.prototype;o.A=function(a,b){};o.B=function(a,b){};o.n=function(a,b){};o.C=function(a,b,c){b=(q(this.a).b|0)-b|0;var e=F(new Ja(a,b),q(this.a),this.a.i),f=new Ja(c,c),g=l(this.a.i.b,f),k=J(e,K(L(new Ja(a,b),q(this.a)),g));if(g.a>15&&g.b>15&&g.a<2500&&g.b<2500){this.a.i.a=k,this.a.i.b=g;var i=new Ja(this.a.a.width,this.a.a.height);N(this.a.i.b,i,1)}};function Fa(a,b,c,e){this.a=m(),this.b=m(),this.a=new Ja(a,b),this.b=new Ja(c,e)}function Ga(a,b){this.c=this.e=null,this.f=this.g=null,this.k=null,this.a=a,this.b=b;var c=this.a.gl;c.disable(2929),this.c=this.a.program('glsl/quad.vert','glsl/game_of_life.frag'),this.e=a.array(Igloo.QUAD2),this.f=this.a.texture(null,
-6408,10497,9728).blank(this.b,this.b),this.g=this.a.texture(null,6408,10497,9728).blank(this.b,this.b),this.k=this.a.framebuffer();for(var e=new Uint8Array(Aa(this.b,this.b)),f=0,g=e.length;f<g;f=f+1|0)e[f]=Math.random()<.5?1:0;ha(this,e)}function Ha(a){this.a=a,this.b=!1,this.c=null}o=Ha.prototype;o.X=function(a){d(a.touches).length^1||(this.b=!0,this.c=new Da(this.a),this.c.A(d(a.touches)[0].clientX,d(a.touches)[0].clientY)),p(a)};o.Y=function(a){this.b&&d(a.touches).length==1&&this.c.B(d(a.touches)[0].clientX,d(a.touches)[0].clientY),p(a)};o.Z=function(a){this.b&&d(a.touches).length==1&&this.c.n(d(a.touches)[0].clientX,d(a.touches)[0].clientY),p(a)};function Ia(a){this.a=a,this.b=!1,this.c=-1,this.e=null}o=Ia.prototype;o.X=function(a){d(a.touches).length^2||(this.b=!0,this.c=H(this,a),this.e=new Ea(this.a))};o.Y=function(a){this.b&&d(a.touches).length==2&&I(this,a)};o.Z=function(a){this.b&&d(a.touches).length==2&&(I(this,a),this.b=!1)};function Ja(a,b){this.a=a,this.b=b}var va=1024;Ca()})();
+(function() {
+  var __imul = Math.imul ? Math.imul : function(a, b) {
+    return (a * (b >>> 16) << 16) + a * (b & 65535) | 0;
+  };
+
+  function assert(truth) {
+    if (!truth) {
+      throw Error('Assertion failed');
+    }
+  }
+
+  function main() {
+    window.onload = function() {
+      var canvas = document.getElementById('game-of-life-canvas');
+      var controller = new Controller(canvas);
+      controller.draw();
+      controller.start();
+
+      if (!RELEASE) {
+        // Expose this for in-browser debugging
+        window.controller = controller;
+      }
+
+      if (isTouchDevice()) {
+        document.getElementById('instructions').innerHTML = 'Pinch and drag to move around.';
+      }
+    };
+  }
+
+  function canvasSpaceToGridSpace1(canvasPosition, canvasSize, viewport) {
+    var canvasSpaceUv = canvasPosition.divide(canvasSize);
+    return viewport.pointAtUvCoordinate(canvasSpaceUv);
+  }
+
+  function Box(value) {
+    this.value = value;
+  }
+
+  function Controller(canvas) {
+    var self = this;
+    self._canvas = null;
+    self._simulation = null;
+    self._igloo = null;
+    self._program = null;
+    self._quadBuffer = null;
+    self._mouseBehaviors = null;
+    self._touchHandlers = null;
+    self.viewport = null;
+    self._canvas = canvas;
+    self.viewport = new Rect(0, 0, 700, 700);
+    self._igloo = new Igloo(canvas);
+
+    if (self._igloo.gl == null) {
+      document.getElementById('app-container').style.display = 'none';
+      document.getElementById('webgl-error').style.display = null;
+
+      throw new Error('Failed to initialize Igloo');
+    }
+
+    self._simulation = new Simulation(self._igloo, Controller.gridSize);
+    self._igloo.gl.disable(self._igloo.gl.DEPTH_TEST);
+    self._program = self._igloo.program('glsl/quad.vert', 'glsl/draw_grid.frag');
+    self._quadBuffer = self._igloo.array(Igloo.QUAD2);
+    self._mouseBehaviors = [new DragMouseBehavior(self), new ZoomMouseBehavior(self)];
+    self._touchHandlers = [new PanTouchHandler(self), new ZoomTouchHandler(self)];
+    self._bindMouseBehaviors();
+    self._onResize();
+    in_HTMLWindow.addEventListener1(window, 'resize', function() {
+      self._onResize();
+    });
+  }
+
+  Controller.prototype._onResize = function() {
+    var canvasContainer = document.getElementById('canvas-container');
+    this._canvas.width = canvasContainer.offsetWidth;
+    this._canvas.height = canvasContainer.offsetHeight;
+
+    // Constrain the viewport size to the same aspect ratio
+    // as the canvas
+    this.viewport.size.constrainToAspectRatio(new Vector(this._canvas.width, this._canvas.height), Axis.Y);
+
+    if (!RELEASE) {
+      var viewportAspectRatio = this.viewport.size.y / this.viewport.size.x;
+      var canvasAspectRatio = this._canvas.height / this._canvas.width;
+      assert(viewportAspectRatio - canvasAspectRatio < 0.001);
+    }
+  };
+
+  Controller.prototype.canvas = function() {
+    return this._canvas;
+  };
+
+  Controller.prototype.canvasSize = function() {
+    return new Vector(this._canvas.width, this._canvas.height);
+  };
+
+  Controller.prototype.draw = function() {
+    // As per the comment at the top of 'step', the current grid
+    // state is stored in the 'front' texture. So we bind that to
+    // index 0 and pass that to the shader as cellGridTexture.
+    this._igloo.defaultFramebuffer.bind();
+    this._simulation.gridTexture().bind(0);
+    this._igloo.gl.viewport(0, 0, this._canvas.width, this._canvas.height);
+    this._program.use().attrib('quad', this._quadBuffer, 2).uniformi('cellGridTexture', 0).uniform('viewportOffset', this.viewport.origin.toFloat32Array()).uniform('viewportSize', this.viewport.size.toFloat32Array()).uniform('canvasSize', new Float32Array([this._canvas.width, this._canvas.height])).uniform('gridSize', new Float32Array([this._simulation.gridSize, this._simulation.gridSize])).uniform('showDebugUI', !RELEASE, true).draw(this._igloo.gl.TRIANGLE_STRIP, 4);
+  };
+
+  Controller.prototype.start = function() {
+    var self = this;
+    setInterval(function() {
+      self._simulation.step();
+      self.draw();
+    }, 60);
+  };
+
+  Controller.prototype._bindMouseBehaviors = function() {
+    var self = this;
+    in_HTMLElement.addEventListener4(self._canvas, 'mousedown', function(e) {
+      for (var i = 0, list = self._mouseBehaviors, count = in_List.count(list); i < count; i = i + 1 | 0) {
+        var behavior = in_List.get(list, i);
+        behavior.down(e.offsetX, e.offsetY);
+      }
+    });
+    in_HTMLElement.addEventListener4(self._canvas, 'mousemove', function(e) {
+      for (var i = 0, list = self._mouseBehaviors, count = in_List.count(list); i < count; i = i + 1 | 0) {
+        var behavior = in_List.get(list, i);
+        behavior.move(e.offsetX, e.offsetY);
+      }
+    });
+    in_HTMLElement.addEventListener4(self._canvas, 'mouseup', function(e) {
+      for (var i = 0, list = self._mouseBehaviors, count = in_List.count(list); i < count; i = i + 1 | 0) {
+        var behavior = in_List.get(list, i);
+        behavior.up(e.offsetX, e.offsetY);
+      }
+    });
+    in_HTMLElement.addEventListener4(self._canvas, 'mouseleave', function(e) {
+      for (var i = 0, list = self._mouseBehaviors, count = in_List.count(list); i < count; i = i + 1 | 0) {
+        var behavior = in_List.get(list, i);
+        behavior.up(e.offsetX, e.offsetY);
+      }
+    });
+    in_HTMLElement.addEventListener6(self._canvas, 'wheel', function(e) {
+      for (var i = 0, list = self._mouseBehaviors, count = in_List.count(list); i < count; i = i + 1 | 0) {
+        var behavior = in_List.get(list, i);
+        behavior.scroll(e.offsetX, e.offsetY, e.deltaY);
+      }
+    });
+    in_HTMLElement.addEventListener5(self._canvas, 'touchstart', function(e) {
+      for (var i = 0, list = self._touchHandlers, count = in_List.count(list); i < count; i = i + 1 | 0) {
+        var touchHandler = in_List.get(list, i);
+        touchHandler.touchStart(e);
+      }
+    });
+    in_HTMLElement.addEventListener5(self._canvas, 'touchmove', function(e) {
+      for (var i = 0, list = self._touchHandlers, count = in_List.count(list); i < count; i = i + 1 | 0) {
+        var touchHandler = in_List.get(list, i);
+        touchHandler.touchMove(e);
+      }
+    });
+    in_HTMLElement.addEventListener5(self._canvas, 'touchend', function(e) {
+      for (var i = 0, list = self._touchHandlers, count = in_List.count(list); i < count; i = i + 1 | 0) {
+        var touchHandler = in_List.get(list, i);
+        touchHandler.touchEnd(e);
+      }
+    });
+  };
+
+  function DragMouseBehavior(_controller) {
+    this._controller = _controller;
+    this._onDownGridSpace = null;
+    this._onDownViewport = null;
+  }
+
+  DragMouseBehavior.prototype.down = function(x, y) {
+    this._onDownViewport = new Box(this._controller.viewport.clone());
+    this._onDownGridSpace = new Box(this._canvasSpaceToGridSpace(x, y));
+  };
+
+  DragMouseBehavior.prototype.move = function(x, y) {
+    if (this._onDownGridSpace == null) {
+      return;
+    }
+
+    var onMoveGridSpace = this._canvasSpaceToGridSpace(x, y);
+    var delta = this._delta(onMoveGridSpace);
+    this._controller.viewport.origin = this._onDownViewport.value.origin.add(delta);
+  };
+
+  DragMouseBehavior.prototype.up = function(x, y) {
+    if (this._onDownGridSpace != null) {
+      var onUpGridSpace = this._canvasSpaceToGridSpace(x, y);
+      var delta = this._delta(onUpGridSpace);
+
+      if (delta.length() > 10) {
+        this._controller.viewport.origin = this._onDownViewport.value.origin.add(delta);
+      }
+    }
+
+    this._reset();
+  };
+
+  DragMouseBehavior.prototype.scroll = function(x, y, delta) {
+  };
+
+  DragMouseBehavior.prototype._reset = function() {
+    this._onDownGridSpace = null;
+    this._onDownViewport = null;
+  };
+
+  DragMouseBehavior.prototype._canvasSpaceToGridSpace = function(x, y) {
+    if (this._onDownViewport == null) {
+      throw new Error("Shouldn't call _gridSpaceFromCanvasSpace unless _onDownViewport is set");
+    }
+
+    return canvasSpaceToGridSpace1(new Vector(x, y), new Vector(this._controller.canvas().width, this._controller.canvas().height), this._onDownViewport.value);
+  };
+
+  DragMouseBehavior.prototype._delta = function(newLocation) {
+    if (this._onDownGridSpace == null) {
+      throw new Error("Shouldn't call _delta unless _onDownGridSpace is set");
+    }
+
+    var delta = this._onDownGridSpace.value.subtract(newLocation);
+    delta.y *= -1;
+    return delta;
+  };
+
+  function ZoomMouseBehavior(_controller) {
+    this._controller = _controller;
+  }
+
+  ZoomMouseBehavior.prototype.down = function(x, y) {
+  };
+
+  ZoomMouseBehavior.prototype.move = function(x, y) {
+  };
+
+  ZoomMouseBehavior.prototype.up = function(x, y) {
+  };
+
+  ZoomMouseBehavior.prototype.scroll = function(x, y, delta_) {
+    // Flip HTML canvas co-ordinates so that they match graphics context
+    // co-ordinates. When the mouse is on the bottom of the canvas its
+    // y-value should be 0. When it's at the top its value should be
+    // canvasSize.y
+    y = (this._controller.canvasSize().y | 0) - y | 0;
+    var gridSpaceCenter = canvasSpaceToGridSpace1(new Vector(x, y), this._controller.canvasSize(), this._controller.viewport);
+
+    // First, let's figure out the size of the new viewport. To maintain
+    // the viewport aspect ratio we make sure that delta has the same
+    // aspect ratio.
+    var viewportAspectRatio = this._controller.viewport.size.y / this._controller.viewport.size.x;
+    var delta = new Vector(delta_, delta_ * viewportAspectRatio);
+    var newSize = this._controller.viewport.size.add(delta);
+
+    // Now we want to figure out the origin of the new viewport such that
+    // the cursor points to the same location on the grid. How do we do that?
+    //
+    // Well, the cursor is at (x, y) in canvas space. And it will
+    // still be at (x, y) in canvas space when we're done zooming.
+    // We can use this. If you unbundle the logic of the
+    // canvasSpaceToGridSpace above, you'll see that it breaks down
+    // to the following formula:
+    //
+    // gridSpacePosition = viewport.origin + (canvasSpacePosition / canvasSize) * viewport.size
+    //
+    // Re-working it to put viewport.origin on the left, we get
+    //
+    // viewport.origin = gridSpacePosition - (canvasSpacePosition / canvasSize) * viewport.size
+    //
+    var newOrigin = gridSpaceCenter.subtract(new Vector(x, y).divide(this._controller.canvasSize()).multiply(newSize));
+
+    if (newSize.x > ZoomMouseBehavior.minSize && newSize.y > ZoomMouseBehavior.minSize && newSize.x < ZoomMouseBehavior.maxSize && newSize.y < ZoomMouseBehavior.maxSize) {
+      this._controller.viewport.origin = newOrigin;
+      this._controller.viewport.size = newSize;
+    }
+  };
+
+  function Rect(left, top, width, height) {
+    this.origin = Vector.new1();
+    this.size = Vector.new1();
+    this.origin = new Vector(left, top);
+    this.size = new Vector(width, height);
+  }
+
+  Rect.prototype.clone = function() {
+    return new Rect(this.origin.x, this.origin.y, this.size.x, this.size.y);
+  };
+
+  Rect.prototype.pointAtUvCoordinate = function(uv) {
+    return this.origin.add(uv.multiply(this.size));
+  };
+
+  function Simulation(igloo, gridSize_) {
+    this._igloo = null;
+    this.gridSize = 0;
+    this._program = null;
+    this._quadBuffer = null;
+    this._sourceTexture = null;
+    this._destTexture = null;
+    this._framebuffer = null;
+    this._igloo = igloo;
+    this.gridSize = gridSize_;
+    var gl = this._igloo.gl;
+    gl.disable(gl.DEPTH_TEST);
+    this._program = this._igloo.program('glsl/quad.vert', 'glsl/game_of_life.frag');
+    this._quadBuffer = igloo.array(Igloo.QUAD2);
+    this._sourceTexture = this._igloo.texture(null, gl.RGBA, gl.REPEAT, gl.NEAREST).blank(this.gridSize, this.gridSize);
+    this._destTexture = this._igloo.texture(null, gl.RGBA, gl.REPEAT, gl.NEAREST).blank(this.gridSize, this.gridSize);
+    this._framebuffer = this._igloo.framebuffer();
+
+    // Initialize the cell grid with random values
+    var randomGrid = new Uint8Array(__imul(this.gridSize, this.gridSize));
+
+    for (var i = 0, count = randomGrid.length; i < count; i = i + 1 | 0) {
+      randomGrid[i] = Math.random() < 0.5 ? 1 : 0;
+    }
+
+    this.setCellGrid(randomGrid);
+  }
+
+  Simulation.prototype.gridTexture = function() {
+    return this._sourceTexture;
+  };
+
+  Simulation.prototype.setCellGrid = function(inputGrid) {
+    var rgba = new Uint8Array(__imul(__imul(this.gridSize, this.gridSize), 4));
+
+    for (var i = 0, count = inputGrid.length; i < count; i = i + 1 | 0) {
+      var j = __imul(i, 4);
+      rgba[j + 0 | 0] = inputGrid[i] == 1 ? 255 : 0;
+      rgba[j + 1 | 0] = inputGrid[i] == 1 ? 255 : 0;
+      rgba[j + 2 | 0] = inputGrid[i] == 1 ? 255 : 0;
+      rgba[j + 3 | 0] = 255;
+    }
+
+    this._sourceTexture.subset(rgba, 0, 0, this.gridSize, this.gridSize);
+  };
+
+  Simulation.prototype.step = function() {
+    // The current simulation state is always in _sourceTexture
+    // and we draw onto _destTexture. So...
+    //
+    // 1. Bind the _destTexture onto the framebuffer so that
+    //    we'll draw onto it.
+    //
+    // 2. Bind _sourceTexture texture to index 0. This is
+    //    passed to the shader by setting the
+    //    cellGridTexture uniform below.
+    //
+    this._framebuffer.attach(this._destTexture);
+    this._sourceTexture.bind(0);
+    this._igloo.gl.viewport(0, 0, this.gridSize, this.gridSize);
+    this._program.use().attrib('quad', this._quadBuffer, 2).uniformi('cellGridTexture', 0).uniform('cellGridSize', new Float32Array([this.gridSize, this.gridSize])).draw(this._igloo.gl.TRIANGLE_STRIP, 4);
+
+    // Swap the source and destination textures
+    var tmp = this._sourceTexture;
+    this._sourceTexture = this._destTexture;
+    this._destTexture = tmp;
+  };
+
+  function PanTouchHandler(_controller) {
+    this._controller = _controller;
+    this._panning = false;
+    this._dragBehavior = null;
+  }
+
+  PanTouchHandler.prototype.touchStart = function(e) {
+    if (in_List.count(in_HTMLTouchEvent.touches(e)) == 1) {
+      this._panning = true;
+      this._dragBehavior = new DragMouseBehavior(this._controller);
+      this._dragBehavior.down(in_List.get(in_HTMLTouchEvent.touches(e), 0).clientX, in_List.get(in_HTMLTouchEvent.touches(e), 0).clientY);
+    }
+
+    in_HTMLEvent.preventDefault(e);
+  };
+
+  PanTouchHandler.prototype.touchMove = function(e) {
+    if (this._panning && in_List.count(in_HTMLTouchEvent.touches(e)) == 1) {
+      this._dragBehavior.move(in_List.get(in_HTMLTouchEvent.touches(e), 0).clientX, in_List.get(in_HTMLTouchEvent.touches(e), 0).clientY);
+    }
+
+    in_HTMLEvent.preventDefault(e);
+  };
+
+  PanTouchHandler.prototype.touchEnd = function(e) {
+    if (this._panning && in_List.count(in_HTMLTouchEvent.touches(e)) == 1) {
+      this._dragBehavior.up(in_List.get(in_HTMLTouchEvent.touches(e), 0).clientX, in_List.get(in_HTMLTouchEvent.touches(e), 0).clientY);
+    }
+
+    in_HTMLEvent.preventDefault(e);
+  };
+
+  function ZoomTouchHandler(_controller) {
+    this._controller = _controller;
+    this._scaling = false;
+    this._lastDist = -1;
+    this._zoomBehavior = null;
+  }
+
+  ZoomTouchHandler.prototype.touchStart = function(e) {
+    if (in_List.count(in_HTMLTouchEvent.touches(e)) == 2) {
+      this._scaling = true;
+      this._lastDist = this._dist(e);
+      this._zoomBehavior = new ZoomMouseBehavior(this._controller);
+    }
+  };
+
+  ZoomTouchHandler.prototype.touchMove = function(e) {
+    if (this._scaling && in_List.count(in_HTMLTouchEvent.touches(e)) == 2) {
+      this._onZoom(e);
+    }
+  };
+
+  ZoomTouchHandler.prototype.touchEnd = function(e) {
+    if (this._scaling && in_List.count(in_HTMLTouchEvent.touches(e)) == 2) {
+      this._onZoom(e);
+      this._scaling = false;
+    }
+  };
+
+  ZoomTouchHandler.prototype._dist = function(e) {
+    var aTouch = in_List.get(in_HTMLTouchEvent.touches(e), 0);
+    var bTouch = in_List.get(in_HTMLTouchEvent.touches(e), 1);
+    var a = new Vector(aTouch.clientX, aTouch.clientY);
+    var b = new Vector(bTouch.clientX, bTouch.clientY);
+    return a.distanceTo(b);
+  };
+
+  ZoomTouchHandler.prototype._center = function(e) {
+    var aTouch = in_List.get(in_HTMLTouchEvent.touches(e), 0);
+    var bTouch = in_List.get(in_HTMLTouchEvent.touches(e), 1);
+    var a = new Vector(aTouch.clientX, aTouch.clientY);
+    var b = new Vector(bTouch.clientX, bTouch.clientY);
+    return a.add(b).divide1(2);
+  };
+
+  ZoomTouchHandler.prototype._onZoom = function(e) {
+    var center = this._center(e);
+    var newDist = this._dist(e);
+    var delta = this._lastDist - newDist;
+    this._zoomBehavior.scroll(center.x | 0, center.y | 0, delta);
+    this._lastDist = newDist;
+  };
+
+  var Axis = {
+    X: 0,
+    Y: 1
+  };
+
+  function Vector(x, y) {
+    this.x = 0;
+    this.y = 0;
+    this.x = x;
+    this.y = y;
+  }
+
+  Vector.prototype.add = function(v) {
+    return new Vector(this.x + v.x, this.y + v.y);
+  };
+
+  Vector.prototype.subtract = function(v) {
+    return new Vector(this.x - v.x, this.y - v.y);
+  };
+
+  Vector.prototype.multiply = function(v) {
+    return new Vector(this.x * v.x, this.y * v.y);
+  };
+
+  Vector.prototype.divide = function(v) {
+    return new Vector(this.x / v.x, this.y / v.y);
+  };
+
+  Vector.prototype.divide1 = function(d) {
+    return new Vector(this.x / d, this.y / d);
+  };
+
+  Vector.prototype.distanceTo = function(v) {
+    return Math.sqrt(this.dot(v));
+  };
+
+  Vector.prototype.length = function() {
+    return Math.sqrt(this.x * this.x + this.y * this.y);
+  };
+
+  Vector.prototype.dot = function(v) {
+    return this.x * v.x + this.y * v.y;
+  };
+
+  Vector.prototype.toFloat32Array = function() {
+    return new Float32Array([this.x, this.y]);
+  };
+
+  Vector.prototype.constrainToAspectRatio = function(other, freeAxis) {
+    // TODO(ryan): change this to a switch statement once the skew
+    // compiler is fixed
+    if (freeAxis == Axis.X) {
+      this.x = this.y * other.x / other.y;
+    }
+
+    else {
+      this.y = this.x * other.y / other.x;
+    }
+  };
+
+  Vector.new1 = function() {
+    return new Vector(0, 0);
+  };
+
+  var HTML = {};
+
+  HTML.asList = function(listLike) {
+    var list = [];
+
+    for (var i = 0, count = listLike.length; i < count; i = i + 1 | 0) {
+      list.push(listLike[i]);
+    }
+
+    return list;
+  };
+
+  HTML.on = function(target, type, listener) {
+    target.addEventListener(type, listener);
+  };
+
+  HTML.preventDefault = function(event) {
+    event.preventDefault();
+  };
+
+  var in_List = {};
+
+  in_List.get = function(self, index) {
+    assert(0 <= index && index < in_List.count(self));
+    return self[index];
+  };
+
+  in_List.count = function(self) {
+    return self.length;
+  };
+
+  var in_HTMLEvent = {};
+
+  in_HTMLEvent.preventDefault = function(self) {
+    HTML.preventDefault(self);
+  };
+
+  var in_HTMLTouchEvent = {};
+
+  in_HTMLTouchEvent.touches = function(self) {
+    return HTML.asList(self.touches);
+  };
+
+  var in_HTMLElement = {};
+
+  in_HTMLElement.addEventListener4 = function(self, type, listener) {
+    HTML.on(self, type, listener);
+  };
+
+  in_HTMLElement.addEventListener5 = function(self, type, listener) {
+    HTML.on(self, type, listener);
+  };
+
+  in_HTMLElement.addEventListener6 = function(self, type, listener) {
+    HTML.on(self, type, listener);
+  };
+
+  var in_HTMLWindow = {};
+
+  in_HTMLWindow.addEventListener1 = function(self, type, listener) {
+    HTML.on(self, type, listener);
+  };
+
+  var RELEASE = false;
+  Controller.gridSize = 1024;
+  ZoomMouseBehavior.minSize = 15;
+  ZoomMouseBehavior.maxSize = 2500;
+
+  main();
+})();
