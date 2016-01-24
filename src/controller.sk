@@ -126,6 +126,10 @@ class Controller {
         _canvas.addEventListener("wheel", (e HTMLWheelEvent) => {
             for behavior in _mouseBehaviors {
                 behavior.scroll(e.offsetX, e.offsetY, e.deltaY)
+
+                # TODO(ryan): Pass browser events to behaviors and move this
+                # into the appropriate mouse behavior
+                e.preventDefault
             }
         })
 
