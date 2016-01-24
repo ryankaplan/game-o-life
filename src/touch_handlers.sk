@@ -92,7 +92,7 @@ class ZoomTouchHandler :: TouchHandler {
 
         _controller.viewport = Zoom.zoomViewport(
             _onStartViewport,
-            _distanceBetweenTouches(e) - _onStartDistance.value,
+            _onStartDistance.value - _distanceBetweenTouches(e),
             _touchCenter(e),
             _controller.canvasSize
         )
