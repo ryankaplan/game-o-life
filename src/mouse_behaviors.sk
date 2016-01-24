@@ -84,65 +84,6 @@ class DragMouseBehavior :: MouseBehavior {
 
 ############################################################################
 
-namespace Zoom {
-    const minSize = 15
-    const maxSize = 2500
-
-    # Zooms in viewport by delta around canvasSpaceCenter. canvasSize is the size
-    # of the canvas HTML element. viewport is in grid space.
-    def zoomViewport(viewport Rect, delta double, canvasSpaceCenter Vector, canvasSize Vector) Rect {
-        const center = canvasSpaceCenter.clone
-
-        # Flip HTML canvas co-ordinates so that they match graphics context
-        # co-ordinates. When the mouse is on the bottom of the canvas its
-        # y-value should be 0. When it's at the top its value should be
-        # canvasSize.y
-        center.y = canvasSize.y as int - center.y
-
-        const gridSpaceCenter = canvasSpaceToGridSpace(center, canvasSize, viewport)
-
-        # The cursor is currently over gridSpaceCenter. The goal here
-        # is to keep the cursor over gridSpaceCenter once we're zoomed
-        # in.
-
-        # First, let's figure out the size of the new viewport. To maintain
-        # the viewport aspect ratio we make sure that delta has the same
-        # aspect ratio.
-        const viewportAspectRatio = viewport.size.y / viewport.size.x
-        const aspectDelta = Vector.new(delta, delta * viewportAspectRatio)
-        const newSize = viewport.size + aspectDelta
-
-        # Now we want to figure out the origin of the new viewport such that
-        # the cursor points to the same location on the grid. How do we do that?
-        #
-        # Well, the cursor is at (x, y) in canvas space. And it will
-        # still be at (x, y) in canvas space when we're done zooming.
-        # We can use this. If you unbundle the logic of the
-        # canvasSpaceToGridSpace above, you'll see that it breaks down
-        # to the following formula:
-        #
-        # gridSpacePosition = viewport.origin + (canvasSpacePosition / canvasSize) * viewport.size
-        #
-        # Re-working it to put viewport.origin on the left, we get
-        #
-        # viewport.origin = gridSpacePosition - (canvasSpacePosition / canvasSize) * viewport.size
-        #
-        const newOrigin = gridSpaceCenter - (center / canvasSize) * newSize
-
-        if newSize.x > minSize && newSize.y > minSize && newSize.x < maxSize && newSize.y < maxSize {
-            return Rect.withOriginAndSize(newOrigin, newSize)
-        }
-
-        return viewport
-    }
-}
-
-
-
-namespace ZoomMouseBehavior {
-
-}
-
 class ZoomMouseBehavior :: MouseBehavior {
     var _controller Controller
 

@@ -49,11 +49,6 @@ class PanTouchHandler :: TouchHandler {
 
 ############################################################################
 
-
-# TODO(ryan): Zooming should be a reversible action. Store viewport state
-# on touchStart and continuously update _controller.viewport
-# _controller.viewport * currentGestureZoomDelta
-
 class ZoomTouchHandler :: TouchHandler {
     var _controller Controller
     var _scaling = false

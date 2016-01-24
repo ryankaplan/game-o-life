@@ -40,7 +40,8 @@ var sources = [
     'src/rect.sk',
     'src/simulation.sk',
     'src/touch_handlers.sk',
-    'src/vector.sk'
+    'src/vector.sk',
+    'src/zoom.sk'
 ];
 
 desc('Build Skew -> Javascript for debug');
