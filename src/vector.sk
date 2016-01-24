@@ -99,7 +99,7 @@ class Vector {
     }
 
     def signedAngleTo(v Vector) double { return v.toAngleRad - toAngleRad }
-    def distanceTo(v Vector) double { return Math.sqrt(self.dot(v)) }
+    def distanceTo(v Vector) double { return (self - v).length }
 	def equals(v Vector) bool { return x == v.x && y == v.y }
 	def length double { return Math.sqrt(x * x + y * y) }
 	def dot(v Vector) double { return x * v.x + y * v.y }

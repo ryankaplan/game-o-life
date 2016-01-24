@@ -45,31 +45,32 @@ class PanTouchHandler :: TouchHandler {
 class ZoomTouchHandler :: TouchHandler {
     var _controller Controller
     var _scaling = false
-    var _lastDist = -1.0
-    var _zoomBehavior ZoomMouseBehavior = null
+
+    var _onStartDistance Box<double> = null
+    var _onStartViewport Rect = null
 
     def touchStart(e HTMLTouchEvent) {
         if e.touches.count == 2 {
             _scaling = true
-            _lastDist = _dist(e)
-            _zoomBehavior = ZoomMouseBehavior.new(_controller)
+            _onStartViewport = _controller.viewport
+            _onStartDistance = Box<double>.new(_distanceBetweenTouches(e))
         }
     }
 
     def touchMove(e HTMLTouchEvent) {
-        if _scaling && e.touches.count == 2 {
+        if _onStartViewport != null && e.touches.count == 2 {
             _onZoom(e)
         }
     }
 
     def touchEnd(e HTMLTouchEvent) {
-        if _scaling && e.touches.count == 2 {
+        if _onStartViewport != null && e.touches.count == 2 {
             _onZoom(e)
-            _scaling = false
+            _onStartViewport = null
         }
     }
 
-    def _dist(e HTMLTouchEvent) double {
+    def _distanceBetweenTouches(e HTMLTouchEvent) double {
         const aTouch = e.touches[0]
         const bTouch = e.touches[1]
         const a = Vector.new(aTouch.clientX, aTouch.clientY)
@@ -77,7 +78,7 @@ class ZoomTouchHandler :: TouchHandler {
         return a.distanceTo(b)
     }
 
-    def _center(e HTMLTouchEvent) Vector {
+    def _touchCenter(e HTMLTouchEvent) Vector {
         const aTouch = e.touches[0]
         const bTouch = e.touches[1]
         const a = Vector.new(aTouch.clientX, aTouch.clientY)
@@ -86,10 +87,14 @@ class ZoomTouchHandler :: TouchHandler {
     }
 
     def _onZoom(e HTMLTouchEvent) {
-        const center = _center(e)
-        const newDist = _dist(e)
-        const delta = _lastDist - newDist
-        _zoomBehavior.scroll(center.x as int, center.y as int, delta)
-        _lastDist = newDist
+        assert(_onStartViewport != null)
+        assert(_onStartDistance != null)
+
+        _controller.viewport = Zoom.zoomViewport(
+            _onStartViewport,
+            _distanceBetweenTouches(e) - _onStartDistance.value,
+            _touchCenter(e),
+            _controller.canvasSize
+        )
     }
 }
