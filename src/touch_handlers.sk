@@ -12,25 +12,37 @@ class PanTouchHandler :: TouchHandler {
     var _dragBehavior DragMouseBehavior = null
 
     def touchStart(e HTMLTouchEvent) {
-        if e.touches.count == 1 {
-            _panning = true
+        # Start panning if there's just a single touch
+        _panning = e.touches.count == 1
+
+        if _panning {
             _dragBehavior = DragMouseBehavior.new(_controller)
             _dragBehavior.down(e.touches[0].clientX, e.touches[0].clientY)
         }
+
         e.preventDefault
     }
 
     def touchMove(e HTMLTouchEvent) {
-        if _panning && e.touches.count == 1 {
+        # If we were panning, keep panning if we still have just one touch
+        _panning = _panning && e.touches.count == 1
+
+        if _panning {
             _dragBehavior.move(e.touches[0].clientX, e.touches[0].clientY)
         }
+
         e.preventDefault
     }
 
     def touchEnd(e HTMLTouchEvent) {
-        if _panning && e.touches.count == 1 {
+        # If we were panning, keep panning if we still have just one touch
+        _panning = _panning && e.touches.count == 1
+
+        if _panning {
             _dragBehavior.up(e.touches[0].clientX, e.touches[0].clientY)
         }
+        _panning = false
+
         e.preventDefault
     }
 }
