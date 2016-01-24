@@ -87,6 +87,7 @@ class Controller {
             .uniform("viewportSize", viewport.size.toFloat32Array)
             .uniform("canvasSize", Float32Array.new([_canvas.width, _canvas.height]))
             .uniform("gridSize", Float32Array.new([_simulation.gridSize, _simulation.gridSize]))
+            .uniform("showDebugUI", !RELEASE, true)
             .draw(_igloo.gl.TRIANGLE_STRIP, 4)
     }
 

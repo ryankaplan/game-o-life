@@ -97,7 +97,10 @@ class ZoomMouseBehavior :: MouseBehavior {
     def up(x int, y int) {}
 
     def scroll(x int, y int, delta_ double) {
-        # HTML page co-ordinates and WebGL co-ordinates are flipped
+        # Flip HTML canvas co-ordinates so that they match graphics context
+        # co-ordinates. When the mouse is on the bottom of the canvas its
+        # y-value should be 0. When it's at the top its value should be
+        # canvasSize.y
         y = _controller.canvasSize.y as int - y
 
         const gridSpaceCenter = canvasSpaceToGridSpace(
@@ -110,13 +113,15 @@ class ZoomMouseBehavior :: MouseBehavior {
         # is to keep the cursor over gridSpaceCenter once we're zoomed
         # in.
 
-        # First, let's figure out the size of the new viewport.
-        const delta = Vector.new(delta_, delta_)
+        # First, let's figure out the size of the new viewport. To maintain
+        # the viewport aspect ratio we make sure that delta has the same
+        # aspect ratio.
+        const viewportAspectRatio = _controller.viewport.size.y / _controller.viewport.size.x
+        const delta = Vector.new(delta_, delta_ * viewportAspectRatio)
         const newSize = _controller.viewport.size + delta
 
-        # Ok, easy enough. Now we want to figure out the origin of
-        # the new viewport such that the cursor points to the same
-        # location on the grid. How do we do that?
+        # Now we want to figure out the origin of the new viewport such that
+        # the cursor points to the same location on the grid. How do we do that?
         #
         # Well, the cursor is at (x, y) in canvas space. And it will
         # still be at (x, y) in canvas space when we're done zooming.
@@ -135,9 +140,6 @@ class ZoomMouseBehavior :: MouseBehavior {
         if newSize.x > minSize && newSize.y > minSize && newSize.x < maxSize && newSize.y < maxSize {
             _controller.viewport.origin = newOrigin
             _controller.viewport.size = newSize
-
-            const canvasSize = Vector.new(_controller.canvas.width, _controller.canvas.height)
-            _controller.viewport.size.constrainToAspectRatio(canvasSize, Axis.Y)
         }
     }
 }

@@ -62,6 +62,8 @@ task('debug', [buildDir], function () {
 desc('Watch skew files and compile when they change');
 watchTask(['debug'], function () {
   this.watchFiles.include([
-    './**/*.sk'
+    './**/*.sk',
+    './**/*.frag',
+    './**/*.vert'
   ]);
 });
