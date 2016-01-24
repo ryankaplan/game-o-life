@@ -21,30 +21,40 @@ bool between(vec2 value, vec2 bottom, vec2 top) {
     return value.x > bottom.x && value.x < top.x && value.y > bottom.y && value.y < top.y;
 }
 
-void main() {
+vec2 getGridPoint(vec2 fragCoord) {
     // UV co-ordinates of the pixel we're drawing in canvas space
     vec2 canvasSpaceUv = gl_FragCoord.xy / canvasSize;
 
     // Use that to find the grid point that we're drawing
-    vec2 gridPoint = viewportOffset + viewportSize * canvasSpaceUv;
+    return viewportOffset + viewportSize * canvasSpaceUv;
+}
+
+vec4 getGridColor(vec2 fragCoord) {
+    vec2 gridPoint = getGridPoint(fragCoord);
 
     // UV co-ordinates of the cell that we're drawing in grid-space
     vec2 gridUv = gridPoint / gridSize;
 
-    gl_FragColor = texture2D(cellGridTexture, gridUv);
+    vec4 gridColor = texture2D(cellGridTexture, gridUv);
 
     // Color the grid
     vec4 color = vec4(
-        gl_FragCoord.x / canvasSize.x,
-        gl_FragCoord.y / canvasSize.y,
-        gl_FragCoord.y * 2.0 / canvasSize.y,
+        fragCoord.x / canvasSize.x,
+        fragCoord.y / canvasSize.y,
+        fragCoord.y * 2.0 / canvasSize.y,
         1.0
     );
 
     // If the cell is 'solid', it will have r == g == b == 1.0
-    gl_FragColor = gl_FragColor.r > 0.5 ? color : vec4(0.13, 0.13, 0.13, 0.0);
+    return gridColor.r > 0.5 ? color : vec4(0.13, 0.13, 0.13, 0.0);
+}
+
+void main() {
+    gl_FragColor = getGridColor(gl_FragCoord.xy);
 
     if (showDebugUI == 1) {
+        vec2 gridPoint = getGridPoint(gl_FragCoord.xy);
+
         vec4 lightRed = vec4(1.0, 0.5, 0.5, 1.0);
         vec4 lightBlue = vec4(0.5, 0.5, 1.0, 1.0);
         vec4 lightGreen = vec4(0.5, 1.0, 0.5, 1.0);
