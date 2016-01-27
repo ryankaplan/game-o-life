@@ -2,7 +2,7 @@ interface MouseBehavior {
     def down(x int, y int)
     def move(x int, y int)
     def up(x int, y int)
-    def scroll(x int, y int, delta double)
+    def scroll(x int, y int, deltaX double, deltaY double)
 }
 
 def canvasSpaceToGridSpace(canvasPosition Vector, canvasSize Vector, viewport Rect) Vector {
@@ -29,6 +29,7 @@ class DragMouseBehavior :: MouseBehavior {
     def down(x int, y int) {
         _onDownViewport = Box<Rect>.new(_controller.viewport.clone)
         _onDownGridSpace = Box<Vector>.new(_canvasSpaceToGridSpace(x, y))
+        _controller.setCanvasCursor("move")
     }
 
     def move(x int, y int) {
@@ -38,6 +39,7 @@ class DragMouseBehavior :: MouseBehavior {
         const onMoveGridSpace = _canvasSpaceToGridSpace(x, y)
         const delta = _delta(onMoveGridSpace)
         _controller.viewport.origin = _onDownViewport.value.origin + delta
+        _controller.setCanvasCursor("move")
     }
 
     def up(x int, y int) {
@@ -49,15 +51,12 @@ class DragMouseBehavior :: MouseBehavior {
             }
         }
 
-        _reset
-    }
-
-    def scroll(x int, y int, delta double) {}
-
-    def _reset {
         _onDownGridSpace = null
         _onDownViewport = null
+        _controller.setCanvasCursor("default")
     }
+
+    def scroll(x int, y int, deltaX double, deltaY double) { }
 
     def _canvasSpaceToGridSpace(x int, y int) Vector {
         if _onDownViewport == null {
@@ -91,10 +90,10 @@ class ZoomMouseBehavior :: MouseBehavior {
     def move(x int, y int) {}
     def up(x int, y int) {}
 
-    def scroll(x int, y int, delta double) {
+    def scroll(x int, y int, deltaX double, deltaY double) {
         _controller.viewport = Zoom.zoomViewport(
             _controller.viewport,
-            delta,
+            deltaY,
             Vector.new(x, y),
             _controller.canvasSize
         )

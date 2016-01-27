@@ -48,6 +48,10 @@ class Controller {
         window.addEventListener("resize", () => { _onResize })
     }
 
+    def setCanvasCursor(cssCursor string) {
+        _canvas.style.cursor = cssCursor
+    }
+
     def _onResize {
         const canvasContainer dynamic = document.getElementById("canvas-container")
         _canvas.width = canvasContainer.offsetWidth
@@ -103,18 +107,21 @@ class Controller {
             for behavior in _mouseBehaviors {
                 behavior.down(e.offsetX, e.offsetY)
             }
+            e.preventDefault
         })
 
         _canvas.addEventListener("mousemove", (e HTMLMouseEvent) => {
             for behavior in _mouseBehaviors {
                 behavior.move(e.offsetX, e.offsetY)
             }
+            e.preventDefault
         })
 
         _canvas.addEventListener("mouseup", (e HTMLMouseEvent) => {
             for behavior in _mouseBehaviors {
                 behavior.up(e.offsetX, e.offsetY)
             }
+            e.preventDefault
         })
 
         _canvas.addEventListener("mouseleave", (e HTMLMouseEvent) => {
@@ -125,30 +132,30 @@ class Controller {
 
         _canvas.addEventListener("wheel", (e HTMLWheelEvent) => {
             for behavior in _mouseBehaviors {
-                behavior.scroll(e.offsetX, e.offsetY, e.deltaY)
-
-                # TODO(ryan): Pass browser events to behaviors and move this
-                # into the appropriate mouse behavior
-                e.preventDefault
+                behavior.scroll(e.offsetX, e.offsetY, e.deltaX, e.deltaY)
             }
+            e.preventDefault
         })
 
         _canvas.addEventListener("touchstart", (e HTMLTouchEvent) => {
             for touchHandler in _touchHandlers {
                 touchHandler.touchStart(e)
             }
+            e.preventDefault
         })
 
         _canvas.addEventListener("touchmove", (e HTMLTouchEvent) => {
             for touchHandler in _touchHandlers {
                 touchHandler.touchMove(e)
             }
+            e.preventDefault
         })
 
         _canvas.addEventListener("touchend", (e HTMLTouchEvent) => {
             for touchHandler in _touchHandlers {
                touchHandler.touchEnd(e)
             }
+            e.preventDefault
         })
     }
 }

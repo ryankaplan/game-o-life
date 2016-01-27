@@ -1,5 +1,5 @@
 namespace Zoom {
-    const minSize = 15
+    const minSize = 30
     const maxSize = 2500
 
     # Zooms in viewport by delta around canvasSpaceCenter. canvasSize is the size
